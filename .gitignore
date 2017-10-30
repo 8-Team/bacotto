@@ -17,3 +17,6 @@
 bacotto
 tmp/
 .vscode
+
+# Local environment
+.envrc
