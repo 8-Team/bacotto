@@ -2,6 +2,12 @@
 
 
 [[projects]]
+  name = "github.com/Sirupsen/logrus"
+  packages = ["."]
+  revision = "f006c2ac4710855cf0f916dd6b77acf6b048dc6e"
+  version = "v1.0.3"
+
+[[projects]]
   name = "github.com/jinzhu/gorm"
   packages = [".","dialects/postgres"]
   revision = "5174cc5c242a728b435ea2be8a2f7f998e15429b"
@@ -19,9 +25,39 @@
   packages = [".","hstore","oid"]
   revision = "b609790bd85edf8e9ab7e0f8912750a786177bcf"
 
+[[projects]]
+  name = "github.com/nlopes/slack"
+  packages = ["."]
+  revision = "c86337c0ef2486a15edd804355d9c73d2f2caed1"
+  version = "v0.1.0"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/plorefice/slackbot"
+  packages = ["."]
+  revision = "0fd0cc03050ec3ddde0bc94081984fd4578c785d"
+
+[[projects]]
+  branch = "master"
+  name = "golang.org/x/crypto"
+  packages = ["ssh/terminal"]
+  revision = "2509b142fb2b797aa7587dad548f113b2c0f20ce"
+
+[[projects]]
+  branch = "master"
+  name = "golang.org/x/net"
+  packages = ["websocket"]
+  revision = "c73622c77280266305273cb545f54516ced95b93"
+
+[[projects]]
+  branch = "master"
+  name = "golang.org/x/sys"
+  packages = ["unix","windows"]
+  revision = "661970f62f5897bc0cd5fdca7e087ba8a98a8fa1"
+
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "ba778e1163bf6771aaf306afaed6c1e61ee56adafbda26db0ef538f157d661ee"
+  inputs-digest = "5fd143a89d0f8305676fc4a2e33ec6e3e721f743d813c5c0a506dc5245c9ff15"
   solver-name = "gps-cdcl"
   solver-version = 1
