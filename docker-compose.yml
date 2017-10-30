@@ -6,7 +6,7 @@ services:
 
   api:
     build: .
-    command: fresh
+    command: fresh -c /go/src/github.com/8-team/bacotto/conf/fresh.conf
     environment:
       - DB_URI=postgres://postgres@db/?sslmode=disable
     links:
