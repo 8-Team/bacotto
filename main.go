@@ -7,8 +7,8 @@ import (
 	"time"
 
 	"github.com/8-team/bacotto/botto"
+	"github.com/8-team/bacotto/db"
 	log "github.com/Sirupsen/logrus"
-	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/postgres"
 )
 
@@ -22,19 +22,8 @@ func getSlackToken() string {
 	return os.Getenv("BOTTO_API_TOKEN")
 }
 
-// The API of bacotto
-type API struct {
-	// unused for now
-	db *gorm.DB
-}
-
-func (api *API) helloWorld(w http.ResponseWriter, r *http.Request) {
-	fmt.Println("profit!")
-	fmt.Fprintf(w, "Hello World!")
-}
-
 func main() {
-	db, err := gorm.Open("postgres", getDbURI())
+	db, err := db.Open(getDbURI())
 	if err != nil {
 		panic(err)
 	}
@@ -44,16 +33,14 @@ func main() {
 		for {
 			if err := botto.ListenAndServe(getSlackToken()); err != nil {
 				log.WithField("app", "botto").Errorln(err)
-				log.Warningln("Retrying in 1 second...")
-				time.Sleep(time.Second)
 			}
+			log.Warningln("Starting again in 1 second...")
+			time.Sleep(time.Second)
 		}
 	}()
 
-	api := API{db}
-
-	http.HandleFunc("/", api.helloWorld)
-
 	addr := fmt.Sprintf(":%d", port)
-	http.ListenAndServe(addr, nil)
+	if err := http.ListenAndServe(addr, nil); err != nil {
+		log.WithField("app", "api").Fatalln(err)
+	}
 }
