@@ -9,6 +9,7 @@ services:
     command: fresh -c /go/src/github.com/8-team/bacotto/conf/fresh.conf
     environment:
       - DB_URI=postgres://postgres@db/?sslmode=disable
+      - BOTTO_API_TOKEN
     links:
       - db
     ports:
