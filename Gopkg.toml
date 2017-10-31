@@ -24,3 +24,10 @@
 [[constraint]]
   name = "github.com/jinzhu/gorm"
   version = "1.0.0"
+
+[[constraint]]
+  name = "github.com/Sirupsen/logrus"
+  version = "1.0.0"
+
+[[constraint]]
+  name = "github.com/plorefice/slackbot"
