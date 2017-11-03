@@ -35,7 +35,7 @@
   branch = "master"
   name = "github.com/plorefice/slackbot"
   packages = ["."]
-  revision = "0fd0cc03050ec3ddde0bc94081984fd4578c785d"
+  revision = "bb038455151cfaac0142b4167f1116aa3d23c6c5"
 
 [[projects]]
   branch = "master"
@@ -58,6 +58,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "6be00c5260268cc3c1158927cca30331d57ad006b8654c3892790a647cc5e615"
+  inputs-digest = "5ee7b6387b8bf8d13f7e3bbffaef9776c41534ccf30d64d60c3fe4ed9dc571ff"
   solver-name = "gps-cdcl"
   solver-version = 1

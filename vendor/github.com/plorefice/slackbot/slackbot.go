@@ -1,14 +1,13 @@
 package slackbot
 
 import (
+	"bufio"
 	"errors"
 	"fmt"
 	"io"
 	"os"
 	"regexp"
 	"strings"
-
-	"bufio"
 
 	"github.com/Sirupsen/logrus"
 	"github.com/nlopes/slack"
@@ -28,25 +27,34 @@ type Bot struct {
 
 	actions map[*regexp.Regexp]Action
 	defact  SimpleAction
+
+	registeredFlows map[string]*Flow
+	activeFlows     map[string]*Flow
 }
 
 type Config struct {
 	Offline bool
 }
 
-func New(token string, conf Config) *Bot {
+func New(token string, conf Config) (*Bot, error) {
+	if token == "" {
+		return nil, errors.New("token cannot be empty")
+	}
+
 	client := slack.New(token)
 	logger := logrus.New()
 
 	bot := &Bot{
-		config:  conf,
-		client:  client,
-		rtm:     client.NewRTM(),
-		logger:  logger,
-		actions: make(map[*regexp.Regexp]Action),
+		config:          conf,
+		client:          client,
+		rtm:             client.NewRTM(),
+		logger:          logger,
+		actions:         make(map[*regexp.Regexp]Action),
+		registeredFlows: make(map[string]*Flow),
+		activeFlows:     make(map[string]*Flow),
 	}
 
-	return bot
+	return bot, nil
 }
 
 func (bot *Bot) Start() error {
@@ -99,7 +107,7 @@ func (bot *Bot) startLocal() error {
 }
 
 func (bot *Bot) startRTM() error {
-	var filter filterer
+	var filter Filterer
 
 	rtm := bot.rtm
 	log := bot.logger
@@ -112,7 +120,7 @@ func (bot *Bot) startRTM() error {
 			bot.UserID = ev.Info.User.ID
 			bot.Name = ev.Info.User.ID
 
-			filter = newDirectFilter(bot.UserID)
+			filter = SingleUserFilter{bot.UserID}
 
 			log.Infof("%s is online @ %s", bot.Name, ev.Info.Team.Name)
 			log.Debugln("Bot info:", ev.Info)
@@ -120,8 +128,12 @@ func (bot *Bot) startRTM() error {
 
 		case *slack.MessageEvent:
 			if filter.filter(&ev.Msg) {
-				log.Debugf("Message: %v\n", ev)
-				bot.handleMsg(&ev.Msg)
+				if f := bot.findFlow(ev); f != nil {
+					f.step(ev)
+				} else {
+					log.Debugf("Message: %v\n", ev)
+					bot.handleMsg(&ev.Msg)
+				}
 			}
 
 		case *slack.RTMError:
@@ -148,7 +160,10 @@ func (bot *Bot) handleMsg(msg *slack.Msg) {
 			return
 		}
 	}
-	bot.defact(bot, msg)
+
+	if bot.defact != nil {
+		bot.defact(bot, msg)
+	}
 }
 
 func (bot *Bot) cleanupMsg(msg string) string {
