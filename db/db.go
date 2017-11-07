@@ -25,6 +25,8 @@ func Open(uri string) error {
 
 	gdb.AutoMigrate(&Otto{}, &User{})
 
+	gdb.Model(&Otto{}).AddForeignKey("user_id", "users(id)", "RESTRICT", "RESTRICT")
+
 	DB = &Database{DB: gdb}
 
 	if _, y := os.LookupEnv("MOCK_DB"); y {

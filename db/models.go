@@ -9,7 +9,7 @@ import (
 type Otto struct {
 	gorm.Model
 
-	UserID    uint
+	UserID    *uint
 	Serial    string `gorm:"not null;unique_index"`
 	OTPSecret string
 
@@ -21,7 +21,7 @@ type User struct {
 	gorm.Model
 
 	Username string `gorm:"not null;unique_index"`
-	Ottos    []Otto
+	Ottos    []Otto `gorm:"ForeignKey:UserID"`
 
 	LastSeenOnline   time.Time
 	LastConversation time.Time

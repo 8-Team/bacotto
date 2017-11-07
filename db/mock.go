@@ -1,10 +1,11 @@
 package db
 
-func fillMockData() {
-	DB.DropTable(&Otto{})
-	DB.DropTable(&User{})
-	DB.AutoMigrate(&Otto{}, &User{})
+func addOtto(o *Otto) {
+	var tmp Otto
+	DB.FirstOrCreate(&tmp, o)
+}
 
-	DB.Create(&Otto{Serial: "0ABCDE"})
-	DB.Create(&Otto{Serial: "012345"})
+func fillMockData() {
+	addOtto(&Otto{Serial: "0ABCDE", OTPSecret: "JBSWY3DPEHPK3PXP"})
+	addOtto(&Otto{Serial: "012345", OTPSecret: "IAWUCNAYW12ANV1K"})
 }
