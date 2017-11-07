@@ -10,6 +10,7 @@ services:
     environment:
       - DB_URI=postgres://postgres@db/?sslmode=disable
       - BOTTO_API_TOKEN
+      - MOCK_DB
     links:
       - db
     ports:

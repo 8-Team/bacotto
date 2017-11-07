@@ -1,26 +1,39 @@
 package db
 
 import (
+	"os"
+	"time"
+
 	"github.com/jinzhu/gorm"
 )
 
-type DB struct {
+type Database struct {
 	*gorm.DB
 }
 
-func Open(uri string) (*DB, error) {
-	db, err := gorm.Open("postgres", uri)
+var DB *Database
+
+func Open(uri string) error {
+	gdb, err := gorm.Open("postgres", uri)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	db.AutoMigrate(&Otto{})
+	gdb.DB().SetConnMaxLifetime(time.Minute * 5)
+	gdb.DB().SetMaxIdleConns(0)
+	gdb.DB().SetMaxOpenConns(5)
 
-	return &DB{
-		DB: db,
-	}, nil
+	gdb.AutoMigrate(&Otto{}, &User{})
+
+	DB = &Database{DB: gdb}
+
+	if _, y := os.LookupEnv("MOCK_DB"); y {
+		fillMockData()
+	}
+
+	return nil
 }
 
-func (db *DB) Close() {
-	db.Close()
+func Close() {
+	DB.Close()
 }

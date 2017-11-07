@@ -23,8 +23,7 @@ func getSlackToken() string {
 }
 
 func main() {
-	db, err := db.Open(getDbURI())
-	if err != nil {
+	if err := db.Open(getDbURI()); err != nil {
 		panic(err)
 	}
 	defer db.Close()

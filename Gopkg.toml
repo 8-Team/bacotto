@@ -31,3 +31,7 @@
 
 [[constraint]]
   name = "github.com/plorefice/slackbot"
+
+[[constraint]]
+  name = "github.com/pquerna/otp"
+  version = "1.0.0"

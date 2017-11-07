@@ -9,19 +9,19 @@ import (
 type Otto struct {
 	gorm.Model
 
-	Serial string `gorm:"not null;unique_index"`
+	UserID    uint
+	Serial    string `gorm:"not null;unique_index"`
+	OTPSecret string
 
 	Manufactured  time.Time
 	ProductionLot string
-
-	OTPSeed []byte
-	Owner   *User
 }
 
 type User struct {
 	gorm.Model
 
 	Username string `gorm:"not null;unique_index"`
+	Ottos    []Otto
 
 	LastSeenOnline   time.Time
 	LastConversation time.Time
