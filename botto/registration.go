@@ -74,12 +74,7 @@ func inputOtp(bot *slackbot.Bot, msg *slack.Msg, ctx interface{}) bool {
 
 func onRegistrationRequest(bot *slackbot.Bot, msg *slack.Msg) bool {
 	var user db.User
-
-	if db.DB.First(&user, "username = ?", msg.User).RecordNotFound() {
-		return true
-	}
-
-	return false
+	return db.DB.First(&user, "username = ?", msg.User).RecordNotFound()
 }
 
 var registrationFlow *slackbot.Flow

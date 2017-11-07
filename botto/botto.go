@@ -11,7 +11,10 @@ func ListenAndServe(token string) error {
 		return err
 	}
 
+	// Register lower priority flows last
 	bot.RegisterFlow(registrationFlow)
+	bot.RegisterFlow(helpFlow)
+	bot.RegisterFlow(unknownCommandFlow)
 
 	return bot.Start()
 }
