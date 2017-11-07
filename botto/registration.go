@@ -45,9 +45,9 @@ func inputSerial(bot *slackbot.Bot, msg *slack.Msg, ctx interface{}) bool {
 func inputOtp(bot *slackbot.Bot, msg *slack.Msg, ctx interface{}) bool {
 	reg := ctx.(*registrationContext)
 
-	re := regexp.MustCompile("^\\d{4}$")
+	re := regexp.MustCompile("^\\d{6}$")
 	if !re.MatchString(msg.Text) {
-		bot.Message(msg.Channel, "The OTP must be a 4-digit number.")
+		bot.Message(msg.Channel, "The OTP must be a 6-digit number.")
 		return false
 	}
 
