@@ -56,6 +56,18 @@ func inputOtp(bot *slackbot.Bot, msg *slack.Msg, ctx interface{}) bool {
 		return false
 	}
 
+	user := &db.User{
+		Username: msg.User,
+	}
+
+	if db.DB.Create(user).Error != nil {
+		bot.Message(msg.Channel, "There was an error during registration, try again.")
+		return false
+	}
+
+	reg.device.UserID = &user.ID
+	db.DB.Save(reg.device)
+
 	bot.Message(msg.Channel, "You are good to go, thank you for using Otto!")
 	return true
 }
@@ -63,7 +75,7 @@ func inputOtp(bot *slackbot.Bot, msg *slack.Msg, ctx interface{}) bool {
 func onRegistrationRequest(bot *slackbot.Bot, msg *slack.Msg) bool {
 	var user db.User
 
-	if db.DB.First(&user, "username = ?", msg.Username).RecordNotFound() {
+	if db.DB.First(&user, "username = ?", msg.User).RecordNotFound() {
 		return true
 	}
 
