@@ -9,12 +9,17 @@ import (
 type Otto struct {
 	gorm.Model
 
-	UserID    *uint
-	Serial    string `gorm:"not null;unique_index"`
-	OTPSecret string
+	DeviceModel string
+	Revision    int
+
+	MACAddress [6]byte
+	Serial     string `gorm:"not null;unique_index"`
+	OTPSecret  string
 
 	Manufactured  time.Time
 	ProductionLot string
+
+	UserID *uint
 }
 
 type User struct {
