@@ -58,8 +58,6 @@ type flowContext struct {
 // Each instance of the flow has an associated user context that will be shared
 // among all the states belonging of the same flow.
 type Flow struct {
-	bot *Bot
-
 	name         string
 	states       map[string]*State
 	initialState *State
@@ -79,11 +77,13 @@ type FlowBuilder struct {
 // RegisterFlow associates a flow with a bot. After registration, each new
 // non-filtered message will trigger the flow guard, if no other flows are active.
 func (bot *Bot) RegisterFlow(f *Flow) error {
-	if _, exists := bot.registeredFlows[f.name]; exists {
-		return errors.New("flow already registered")
+	for _, rf := range bot.registeredFlows {
+		if f.name == rf.name {
+			return errors.New("flow already registered")
+		}
 	}
-	bot.registeredFlows[f.name] = f
-	bot.registeredFlows[f.name].bot = bot
+
+	bot.registeredFlows = append(bot.registeredFlows, f)
 	return nil
 }
 
@@ -112,11 +112,19 @@ func NewFlow(name string) *FlowBuilder {
 // NewFlowWithContext creates a new flow using ctx as the type template for
 // allocating each flow instance's user context.
 func NewFlowWithContext(name string, ctx interface{}) *FlowBuilder {
+	var ctxType reflect.Type
+
+	if ctx != nil {
+		ctxType = reflect.Indirect(reflect.ValueOf(ctx)).Type()
+	} else {
+		ctxType = reflect.TypeOf(ctx)
+	}
+
 	return &FlowBuilder{
 		flow: &Flow{
 			name:        name,
 			states:      make(map[string]*State),
-			userCtxTmpl: reflect.Indirect(reflect.ValueOf(ctx)).Type(),
+			userCtxTmpl: ctxType,
 		},
 	}
 }
@@ -171,16 +179,16 @@ func (fb *FlowBuilder) Build(initialState string) *Flow {
 	return fb.flow
 }
 
-func (f *Flow) step(ev *slack.MessageEvent) {
+func (f *Flow) step(b *Bot, ev *slack.MessageEvent) {
 	cs := f.ctx.currentState
 
 	if cs.act != nil {
-		if handled := cs.act(f.bot, &ev.Msg, f.ctx.userCtx); !handled {
+		if handled := cs.act(b, &ev.Msg, f.ctx.userCtx); !handled {
 			return
 		}
 
 		if ds, ok := f.states[cs.dst]; !ok {
-			f.bot.activeFlows[ev.User] = nil
+			b.activeFlows[ev.User] = nil
 		} else {
 			f.ctx.currentState = ds
 		}
