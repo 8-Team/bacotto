@@ -6,14 +6,32 @@ import (
 	"github.com/BurntSushi/toml"
 )
 
-type conf struct {
+type API struct {
 	HTTPAddr    string `toml:"http_addr"`
 	UseHTTPS    bool   `toml:"use_https"`
-	DbURI       string `toml:"db_uri"`
-	SerialsURI  string `toml:"serials_uri"`
-	SlackToken  string `toml:"slack_token"`
 	KeyPemPath  string `toml:"key_pem_path"`
 	CertPemPath string `toml:"cert_pem_path"`
+}
+
+type Bot struct {
+	SlackToken string `toml:"slack_token"`
+}
+
+type DB struct {
+	DBURI      string `toml:"db_uri"`
+	SerialsURI string `toml:"serials_uri"`
+}
+
+type ERP struct {
+	UseMock      bool   `toml:"use_mock"`
+	MockDataPath string `toml:"mock_data_path"`
+}
+
+type conf struct {
+	API API `toml:"api"`
+	Bot Bot `toml:"bot"`
+	DB  DB  `toml:"db"`
+	ERP ERP `toml:"erp"`
 }
 
 var gc conf
@@ -24,41 +42,49 @@ func Load(path string) error {
 }
 
 func GetHTTPListenAddr() string {
-	if gc.HTTPAddr == "" {
+	if gc.API.HTTPAddr == "" {
 		return ":443"
 	}
-	return gc.HTTPAddr
+	return gc.API.HTTPAddr
 }
 
 func UseHTTPS() bool {
-	return gc.UseHTTPS
+	return gc.API.UseHTTPS
 }
 
 func GetDatabaseURI() string {
-	if gc.DbURI == "" {
+	if gc.DB.DBURI == "" {
 		env := os.Getenv("DB_URI")
 		if env != "" {
 			return env
 		}
 	}
-	return gc.DbURI
+	return gc.DB.DBURI
 }
 
 func GetSlackToken() string {
-	if gc.SlackToken == "" {
+	if gc.Bot.SlackToken == "" {
 		return os.Getenv("BOTTO_API_TOKEN")
 	}
-	return gc.SlackToken
+	return gc.Bot.SlackToken
 }
 
 func GetSerialsURI() string {
-	return gc.SerialsURI
+	return gc.DB.SerialsURI
 }
 
 func GetKeyfilePath() string {
-	return gc.KeyPemPath
+	return gc.API.KeyPemPath
 }
 
 func GetCertFilePath() string {
-	return gc.CertPemPath
+	return gc.API.CertPemPath
+}
+
+func UseMockERP() bool {
+	return gc.ERP.UseMock
+}
+
+func MockERPDataPath() string {
+	return gc.ERP.MockDataPath
 }

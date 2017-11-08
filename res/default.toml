@@ -1,6 +1,13 @@
+[api]
 http_addr     = ":443"
 use_https     = false
-db_uri        = "postgres://postgres@db/?sslmode=disable"
-serials_uri   = "./res/test-serials.csv"
 key_pem_path  = "./res/key.pem"
 cert_pem_path = "./res/cert.pem"
+
+[db]
+db_uri        = "postgres://postgres@db/?sslmode=disable"
+serials_uri   = "./res/test-serials.csv"
+
+[erp]
+use_mock       = true
+mock_data_path = "./res/test-erp.json"
