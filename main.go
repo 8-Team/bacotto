@@ -1,42 +1,40 @@
 package main
 
 import (
-	"fmt"
-	"net/http"
-	"os"
+	"flag"
 	"time"
 
+	"github.com/8-team/bacotto/api"
 	"github.com/8-team/bacotto/botto"
+	"github.com/8-team/bacotto/conf"
 	"github.com/8-team/bacotto/db"
 	log "github.com/Sirupsen/logrus"
 	_ "github.com/jinzhu/gorm/dialects/postgres"
 )
 
-const port = 4273
-
-func getDbURI() string {
-	return os.Getenv("DB_URI")
-}
-
-func getSlackToken() string {
-	return os.Getenv("BOTTO_API_TOKEN")
-}
+var cfgpath = flag.String("conf", "res/default.toml", "configuration file path")
 
 func main() {
-	if err := db.Open(getDbURI()); err != nil {
+	flag.Parse()
+
+	if err := conf.Load(*cfgpath); err != nil {
+		log.Warnln("Configuration file not found, falling back to defaults")
+	}
+
+	if err := db.Open(conf.GetDatabaseURI()); err != nil {
 		panic(err)
 	}
 	defer db.Close()
 
-	if uri, exists := os.LookupEnv("SERIALS_DB_URI"); exists {
-		if err := db.Sync(uri); err != nil {
+	if conf.GetSerialsURI() != "" {
+		if err := db.Sync(conf.GetSerialsURI()); err != nil {
 			panic(err)
 		}
 	}
 
 	go func() {
 		for {
-			if err := botto.ListenAndServe(getSlackToken()); err != nil {
+			if err := botto.ListenAndServe(conf.GetSlackToken()); err != nil {
 				log.WithField("app", "botto").Errorln(err)
 			}
 			log.Warningln("Starting again in 1 second...")
@@ -44,8 +42,7 @@ func main() {
 		}
 	}()
 
-	addr := fmt.Sprintf(":%d", port)
-	if err := http.ListenAndServe(addr, nil); err != nil {
+	if err := api.ListenAndServe(conf.GetHTTPListenAddr()); err != nil {
 		log.WithField("app", "api").Fatalln(err)
 	}
 }

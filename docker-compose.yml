@@ -6,7 +6,7 @@ services:
 
   api:
     build: .
-    command: fresh -c /go/src/github.com/8-team/bacotto/conf/fresh.conf
+    command: fresh -c /go/src/github.com/8-team/bacotto/res/fresh.conf
     environment:
       - DB_URI=postgres://postgres@db/?sslmode=disable
       - SERIALS_DB_URI
@@ -14,6 +14,6 @@ services:
     links:
       - db
     ports:
-      - 4273:4273
+      - 4273:443
     volumes:
       - .:/go/src/github.com/8-team/bacotto

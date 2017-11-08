@@ -2,6 +2,12 @@
 
 
 [[projects]]
+  name = "github.com/BurntSushi/toml"
+  packages = ["."]
+  revision = "b26d9c308763d68093482582cea63d69be07a0f0"
+  version = "v0.3.0"
+
+[[projects]]
   name = "github.com/Sirupsen/logrus"
   packages = ["."]
   revision = "f006c2ac4710855cf0f916dd6b77acf6b048dc6e"
@@ -70,6 +76,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "f44ddd26a86ab1eb8f5218388cf1b5295bdc5d95c2b77fc3dd46edaa85314fe7"
+  inputs-digest = "1c41bd1d89b7ba332ea467721a94da8e4eb642958c8a2bcd080838552921a52c"
   solver-name = "gps-cdcl"
   solver-version = 1
