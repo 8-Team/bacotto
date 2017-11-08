@@ -8,6 +8,7 @@ import (
 	"github.com/8-team/bacotto/botto"
 	"github.com/8-team/bacotto/conf"
 	"github.com/8-team/bacotto/db"
+	"github.com/8-team/bacotto/erp"
 	log "github.com/Sirupsen/logrus"
 	_ "github.com/jinzhu/gorm/dialects/postgres"
 )
@@ -31,6 +32,11 @@ func main() {
 			panic(err)
 		}
 	}
+
+	if err := erp.Open(); err != nil {
+		panic(err)
+	}
+	defer erp.Close()
 
 	go func() {
 		for {

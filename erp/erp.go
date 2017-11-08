@@ -1,6 +1,11 @@
 package erp
 
-import "time"
+import (
+	"errors"
+	"time"
+
+	"github.com/8-team/bacotto/conf"
+)
 
 type Project struct {
 	ID   uint
@@ -15,9 +20,40 @@ type ProjectEntry struct {
 	Duration    time.Duration
 }
 
-type Erper interface {
-	ListProjects() ([]Project, error)
-	AddProjectEntry(pid uint, description string, date time.Time, duration time.Duration) (ProjectEntry, error)
-	ListProjectEntries(pid uint, from time.Time, to time.Time) ([]ProjectEntry, error)
-	RemoveProjectEntry(pe ProjectEntry) error
+type erper interface {
+	listProjects() ([]Project, error)
+	addProjectEntry(pid uint, description string, date time.Time, duration time.Duration) (ProjectEntry, error)
+	listProjectEntries(pid uint, from time.Time, to time.Time) ([]ProjectEntry, error)
+	removeProjectEntry(pe ProjectEntry) error
+}
+
+var erp erper
+
+func Open() (err error) {
+	if conf.UseMockERP() {
+		erp, err = NewMockERP()
+	} else {
+		err = errors.New("only mock ERP supported for now")
+	}
+	return
+}
+
+func Close() {
+
+}
+
+func ListProjects() ([]Project, error) {
+	return erp.listProjects()
+}
+
+func AddProjectEntry(pid uint, description string, date time.Time, duration time.Duration) (ProjectEntry, error) {
+	return erp.addProjectEntry(pid, description, date, duration)
+}
+
+func ListProjectEntries(pid uint, from time.Time, to time.Time) ([]ProjectEntry, error) {
+	return erp.listProjectEntries(pid, from, to)
+}
+
+func RemoveProjectEntry(pe ProjectEntry) error {
+	return erp.removeProjectEntry(pe)
 }
