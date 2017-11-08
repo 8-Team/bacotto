@@ -26,8 +26,12 @@ func Open(uri string) error {
 	gdb.DB().SetMaxOpenConns(5)
 
 	// Migrate schema and manually create foreign keys
-	gdb.AutoMigrate(&Otto{}, &User{})
+	gdb.AutoMigrate(&Otto{}, &User{}, &Project{}, &ProjectEntry{})
+
 	gdb.Model(&Otto{}).AddForeignKey("user_id", "users(id)", "RESTRICT", "RESTRICT")
+
+	gdb.Model(&ProjectEntry{}).AddForeignKey("user_id", "users(id)", "RESTRICT", "RESTRICT")
+	gdb.Model(&ProjectEntry{}).AddForeignKey("project_id", "projects(id)", "RESTRICT", "RESTRICT")
 
 	return nil
 }

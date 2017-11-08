@@ -25,9 +25,28 @@ type Otto struct {
 type User struct {
 	gorm.Model
 
-	Username string `gorm:"not null;unique_index"`
-	Ottos    []Otto `gorm:"ForeignKey:UserID"`
+	Username       string         `gorm:"not null;unique_index"`
+	Ottos          []Otto         `gorm:"ForeignKey:UserID"`
+	ProjectEntries []ProjectEntry `gorm:"ForeignKey:UserID"`
 
 	LastSeenOnline   time.Time
 	LastConversation time.Time
+}
+
+type Project struct {
+	gorm.Model
+
+	Name      string
+	ShortName string
+}
+
+type ProjectEntry struct {
+	gorm.Model
+
+	UserID      uint
+	ProjectID   uint
+	Description string
+
+	StartTime time.Time
+	EndTime   time.Time
 }
