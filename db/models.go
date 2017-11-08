@@ -12,7 +12,7 @@ type Otto struct {
 	DeviceModel string
 	Revision    int
 
-	MACAddress [6]byte
+	MACAddress []byte
 	Serial     string `gorm:"not null;unique_index"`
 	OTPSecret  string
 

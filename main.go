@@ -28,6 +28,12 @@ func main() {
 	}
 	defer db.Close()
 
+	if uri, exists := os.LookupEnv("SERIALS_DB_URI"); exists {
+		if err := db.Sync(uri); err != nil {
+			panic(err)
+		}
+	}
+
 	go func() {
 		for {
 			if err := botto.ListenAndServe(getSlackToken()); err != nil {

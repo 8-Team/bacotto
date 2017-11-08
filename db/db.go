@@ -1,7 +1,6 @@
 package db
 
 import (
-	"os"
 	"time"
 
 	"github.com/jinzhu/gorm"
@@ -19,19 +18,16 @@ func Open(uri string) error {
 		return err
 	}
 
+	DB = &Database{DB: gdb}
+
+	// Setup some sane DB connection parameters
 	gdb.DB().SetConnMaxLifetime(time.Minute * 5)
 	gdb.DB().SetMaxIdleConns(0)
 	gdb.DB().SetMaxOpenConns(5)
 
+	// Migrate schema and manually create foreign keys
 	gdb.AutoMigrate(&Otto{}, &User{})
-
 	gdb.Model(&Otto{}).AddForeignKey("user_id", "users(id)", "RESTRICT", "RESTRICT")
-
-	DB = &Database{DB: gdb}
-
-	if _, y := os.LookupEnv("MOCK_DB"); y {
-		fillMockData()
-	}
 
 	return nil
 }
