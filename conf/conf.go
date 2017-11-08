@@ -8,6 +8,7 @@ import (
 
 type conf struct {
 	HTTPAddr    string `toml:"http_addr"`
+	UseHTTPS    bool   `toml:"use_https"`
 	DbURI       string `toml:"db_uri"`
 	SerialsURI  string `toml:"serials_uri"`
 	SlackToken  string `toml:"slack_token"`
@@ -27,6 +28,10 @@ func GetHTTPListenAddr() string {
 		return ":443"
 	}
 	return gc.HTTPAddr
+}
+
+func UseHTTPS() bool {
+	return gc.UseHTTPS
 }
 
 func GetDatabaseURI() string {

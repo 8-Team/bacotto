@@ -1,4 +1,5 @@
 http_addr     = ":443"
+use_https     = false
 db_uri        = "postgres://postgres@db/?sslmode=disable"
 serials_uri   = "./res/test-serials.csv"
 key_pem_path  = "./res/key.pem"

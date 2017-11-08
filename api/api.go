@@ -24,7 +24,11 @@ func pong(w http.ResponseWriter, r *http.Request) {
 func ListenAndServe(addr string) error {
 	http.HandleFunc("/ping", pong)
 
-	return http.ListenAndServeTLS(addr,
-		conf.GetCertFilePath(),
-		conf.GetKeyfilePath(), nil)
+	if conf.UseHTTPS() {
+		return http.ListenAndServeTLS(addr,
+			conf.GetCertFilePath(),
+			conf.GetKeyfilePath(), nil)
+	}
+
+	return http.ListenAndServe(addr, nil)
 }
