@@ -1,13 +1,6 @@
 package botto
 
-import (
-	"regexp"
-	"strings"
-
-	"github.com/nlopes/slack"
-	"github.com/plorefice/slackbot"
-)
-
+/*
 func helpUser(bot *slackbot.Bot, msg *slack.Msg, ctx interface{}) bool {
 	helpText := `Here's some stuff you can do:
 ` + "`botto help` to show this help message" + `
@@ -43,3 +36,4 @@ func init() {
 		SetGuard(func(bot *slackbot.Bot, msg *slack.Msg) bool { return true }).
 		Build("unk_cmd")
 }
+*/
