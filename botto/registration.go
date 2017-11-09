@@ -1,7 +1,9 @@
 package botto
 
 import (
+	"errors"
 	"regexp"
+	"strings"
 
 	"github.com/8-team/bacotto/db"
 	"github.com/nlopes/slack"
@@ -12,6 +14,50 @@ import (
 type registrationContext struct {
 	device *db.Otto
 	otp    string
+}
+
+func (rc *registrationContext) validateSerial(serial string) error {
+	re := regexp.MustCompile("^[a-fA-F0-9]{6}$")
+
+	if !re.MatchString(serial) {
+		return errors.New("Sorry, the serial number must be a 6-digit hex number")
+	}
+
+	rc.device = new(db.Otto)
+	if db.DB.First(rc.device, "serial = ?", serial).RecordNotFound() {
+		return errors.New("Sorry, I can't find a matching serial. Could you double-check it?")
+	}
+
+	return nil
+}
+
+func (rc *registrationContext) validateOtp(otp string) error {
+	re := regexp.MustCompile("^\\d{6}$")
+
+	if !re.MatchString(otp) {
+		return errors.New("Sorry, the OTP must be a 6-digit number")
+	}
+
+	if !totp.Validate(otp, rc.device.OTPSecret) {
+		return errors.New("Sorry, this OTP is not valid, try again")
+	}
+
+	return nil
+}
+
+func (rc *registrationContext) createUser(username string) error {
+	user := &db.User{
+		Username: username,
+	}
+
+	if db.DB.Create(user).Error != nil {
+		return errors.New("There was an error during registration, try again")
+	}
+
+	rc.device.UserID = &user.ID
+	db.DB.Save(rc.device)
+
+	return nil
 }
 
 func greetUser(bot *slackbot.Bot, msg *slack.Msg, ctx interface{}) bool {
@@ -25,16 +71,9 @@ To get started, please input your Otto's serial number. You can find it on the b
 
 func inputSerial(bot *slackbot.Bot, msg *slack.Msg, ctx interface{}) bool {
 	reg := ctx.(*registrationContext)
-	reg.device = new(db.Otto)
 
-	re := regexp.MustCompile("^[a-fA-F0-9]{6}$")
-	if !re.MatchString(msg.Text) {
-		bot.Message(msg.Channel, "Sorry, the serial number must be a 6-digit hex number.")
-		return false
-	}
-
-	if db.DB.First(reg.device, "serial = ?", msg.Text).RecordNotFound() {
-		bot.Message(msg.Channel, "Sorry, I can't find a matching serial. Could you double-check it?")
+	if err := reg.validateSerial(strings.TrimSpace(msg.Text)); err != nil {
+		bot.Message(msg.Channel, err.Error())
 		return false
 	}
 
@@ -45,32 +84,51 @@ func inputSerial(bot *slackbot.Bot, msg *slack.Msg, ctx interface{}) bool {
 func inputOtp(bot *slackbot.Bot, msg *slack.Msg, ctx interface{}) bool {
 	reg := ctx.(*registrationContext)
 
-	re := regexp.MustCompile("^\\d{6}$")
-	if !re.MatchString(msg.Text) {
-		bot.Message(msg.Channel, "Sorry, the OTP must be a 6-digit number.")
+	if err := reg.validateOtp(strings.TrimSpace(msg.Text)); err != nil {
+		bot.Message(msg.Channel, err.Error())
 		return false
 	}
 
-	if !totp.Validate(msg.Text, reg.device.OTPSecret) {
-		bot.Message(msg.Channel, "Sorry, this OTP is not valid, try again.")
+	if err := reg.createUser(msg.User); err != nil {
+		bot.Message(msg.Channel, err.Error())
 		return false
 	}
-
-	user := &db.User{
-		Username: msg.User,
-	}
-
-	if db.DB.Create(user).Error != nil {
-		bot.Message(msg.Channel, "There was an error during registration, try again.")
-		return false
-	}
-
-	reg.device.UserID = &user.ID
-	db.DB.Save(reg.device)
 
 	bot.Message(msg.Channel, "Fantastic, let's move on!")
 	return true
 }
+
+/*
+	# Example code to show an interactive project list:
+
+	prjs, err := erp.ListProjects()
+	if err != nil {
+		bot.Message("channel string", msg string)
+	}
+
+	menu := slackbot.MessageMenu{
+		Name:   "projects",
+		Values: make(map[string]string),
+	}
+	for _, p := range prjs {
+		menu.Values[p.Name] = p.Name
+	}
+
+	fmt := slackbot.MessageFormat{
+		Callback: "project_selection",
+		Elements: []slackbot.InteractiveElement{
+			menu,
+			slackbot.MessageButton{
+				Name:  "confirm",
+				Text:  "I'm done",
+				Value: "confirm",
+			},
+		},
+	}
+
+	bot.InteractiveMessage(msg.Channel, "Here is a list of your recent projects, "+
+		"select the ones you want to see on your device", fmt)
+*/
 
 func onRegistrationRequest(bot *slackbot.Bot, msg *slack.Msg) bool {
 	var user db.User
