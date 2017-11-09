@@ -15,8 +15,8 @@ type registrationContext struct {
 }
 
 func greetUser(bot *slackbot.Bot, msg *slack.Msg, ctx interface{}) bool {
-	text := `Hi! Welcome to Otto! I'm Botto and I'll be your guide.
-I see this is the first time using Otto, so I'll get you up and running.
+	text := `Hi! I'm Botto and I'll be your guide in the magic world of Otto :8ball:
+I see this is the first time using your Otto, so let's get you up and running!
 To get started, please input your Otto's serial number. You can find it on the back of your device.`
 
 	bot.Message(msg.Channel, text)
@@ -29,12 +29,12 @@ func inputSerial(bot *slackbot.Bot, msg *slack.Msg, ctx interface{}) bool {
 
 	re := regexp.MustCompile("^[a-fA-F0-9]{6}$")
 	if !re.MatchString(msg.Text) {
-		bot.Message(msg.Channel, "The serial number must be a 6-digit hex number.")
+		bot.Message(msg.Channel, "Sorry, the serial number must be a 6-digit hex number.")
 		return false
 	}
 
 	if db.DB.First(reg.device, "serial = ?", msg.Text).RecordNotFound() {
-		bot.Message(msg.Channel, "Sorry, I can't find a matching serial. Is there a typo somewhere?")
+		bot.Message(msg.Channel, "Sorry, I can't find a matching serial. Could you double-check it?")
 		return false
 	}
 
@@ -47,7 +47,7 @@ func inputOtp(bot *slackbot.Bot, msg *slack.Msg, ctx interface{}) bool {
 
 	re := regexp.MustCompile("^\\d{6}$")
 	if !re.MatchString(msg.Text) {
-		bot.Message(msg.Channel, "The OTP must be a 6-digit number.")
+		bot.Message(msg.Channel, "Sorry, the OTP must be a 6-digit number.")
 		return false
 	}
 
@@ -68,7 +68,7 @@ func inputOtp(bot *slackbot.Bot, msg *slack.Msg, ctx interface{}) bool {
 	reg.device.UserID = &user.ID
 	db.DB.Save(reg.device)
 
-	bot.Message(msg.Channel, "You are good to go, thank you for using Otto!")
+	bot.Message(msg.Channel, "Fantastic, let's move on!")
 	return true
 }
 
