@@ -1,4 +1,5 @@
 [api]
+verify_msg    = false
 http_addr     = ":443"
 use_https     = false
 key_pem_path  = "./res/key.pem"

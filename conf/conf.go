@@ -9,6 +9,7 @@ import (
 type API struct {
 	HTTPAddr    string `toml:"http_addr"`
 	UseHTTPS    bool   `toml:"use_https"`
+	VerifyMsg   bool   `toml:"verify_msg"`
 	KeyPemPath  string `toml:"key_pem_path"`
 	CertPemPath string `toml:"cert_pem_path"`
 }
@@ -50,6 +51,10 @@ func GetHTTPListenAddr() string {
 
 func UseHTTPS() bool {
 	return gc.API.UseHTTPS
+}
+
+func VerifyMsg() bool {
+	return gc.API.VerifyMsg
 }
 
 func GetDatabaseURI() string {
