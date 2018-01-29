@@ -21,6 +21,7 @@ type Bot struct {
 type DB struct {
 	DBURI      string `toml:"db_uri"`
 	SerialsURI string `toml:"serials_uri"`
+	FixtureURI string `toml:"fixture_uri"`
 }
 
 type ERP struct {
@@ -76,6 +77,10 @@ func GetSlackToken() string {
 
 func GetSerialsURI() string {
 	return gc.DB.SerialsURI
+}
+
+func GetFixtureURI() string {
+	return gc.DB.FixtureURI
 }
 
 func GetKeyfilePath() string {

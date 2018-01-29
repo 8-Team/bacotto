@@ -8,6 +8,7 @@ cert_pem_path = "./res/cert.pem"
 [db]
 db_uri        = "postgres://postgres@db/?sslmode=disable"
 serials_uri   = "./res/test-serials.csv"
+fixture_uri   = "./res/test-data.csv"
 
 [erp]
 use_mock       = true
