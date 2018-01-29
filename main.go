@@ -28,7 +28,13 @@ func main() {
 	defer db.Close()
 
 	if conf.GetSerialsURI() != "" {
-		if err := db.Sync(conf.GetSerialsURI()); err != nil {
+		if err := db.SyncSerial(conf.GetSerialsURI()); err != nil {
+			panic(err)
+		}
+	}
+
+	if conf.GetFixtureURI() != "" {
+		if err := db.SyncFixture(conf.GetFixtureURI()); err != nil {
 			panic(err)
 		}
 	}
