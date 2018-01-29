@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/8-team/bacotto/conf"
+	"github.com/8-team/bacotto/db"
 	"github.com/8-team/bacotto/erp"
 	"github.com/Sirupsen/logrus"
 )
@@ -37,14 +38,25 @@ func prjlist(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	var err error
+	var js []byte
 	prefered := r.FormValue("prefered")
-
-	var prjs []erp.Project
 	if strings.Compare(prefered, "true") == 0 {
 		// read from db
-		log.Info("No db")
+		device := []db.Project{}
+		if db.DB.Find(&device).RecordNotFound() {
+			log.Errorln("Unable to get connection to ERP")
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		js, err = json.Marshal(device)
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
 	} else {
-		err := erp.Open()
+		var prjs []erp.Project
+		err = erp.Open()
 		if err != nil {
 			log.Errorln("Unable to get connection to ERP")
 			w.WriteHeader(http.StatusInternalServerError)
@@ -56,12 +68,11 @@ func prjlist(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
-	}
-
-	js, err := json.Marshal(prjs)
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		return
+		js, err = json.Marshal(prjs)
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
 	}
 
 	w.Header().Set("Content-Type", "application/json")
