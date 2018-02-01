@@ -5,10 +5,10 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/8-team/bacotto/api"
 	"github.com/8-team/bacotto/db"
 	"github.com/nlopes/slack"
 	"github.com/plorefice/slackbot"
-	"github.com/pquerna/otp/totp"
 )
 
 type registrationContext struct {
@@ -38,7 +38,8 @@ func (rc *registrationContext) validateOtp(otp string) error {
 		return errors.New("Sorry, the OTP must be a 6-digit number")
 	}
 
-	if !totp.Validate(otp, rc.device.OTPSecret) {
+	_, err := api.Authorize(rc.device.Serial, otp)
+	if err != nil {
 		return errors.New("Sorry, this OTP is not valid, try again")
 	}
 
