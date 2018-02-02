@@ -39,43 +39,52 @@ func prjList(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var err error
-	var js []byte
+	prj := []db.Project{}
+	// read from db
+	if db.DB.Find(&prj).RecordNotFound() {
+		log.Errorln("Unable to get connection to ERP")
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
 	prefered := r.FormValue("prefered")
-	if strings.Compare(prefered, "true") == 0 {
-		// read from db
-		device := []db.Project{}
-		if db.DB.Find(&device).RecordNotFound() {
+	log.Info("Prefered: ", prefered)
+	if strings.Compare(prefered, "true") != 0 {
+		// sync db
+		if err := erp.Open(); err != nil {
+			log.Errorln("Unable to get connection to ERP", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		erpPrjs, err := erp.ListProjects()
+		if err != nil {
+			log.Errorln("Unable to get prj list from ERP", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		//Update local db reading project from openERP
+		for _, item := range erpPrjs {
+			p := db.Project{Name: item.Name, ShortName: ""}
+			if err := db.DB.FirstOrCreate(&p, "name = ?", item.Name).Error; err != nil {
+				log.Error("Unable to add new project to db")
+				w.WriteHeader(http.StatusInternalServerError)
+				return
+			}
+		}
+		// Reload updated projects
+		if db.DB.Find(&prj).RecordNotFound() {
 			log.Errorln("Unable to get connection to ERP")
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
-		js, err = json.Marshal(device)
-		if err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
-	} else {
-		var prjs []erp.Project
-		err = erp.Open()
-		if err != nil {
-			log.Errorln("Unable to get connection to ERP")
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
-		prjs, err = erp.ListProjects()
-		if err != nil {
-			log.Errorln("Unable to get prj list from ERP")
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
-		js, err = json.Marshal(prjs)
-		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
 	}
 
+	js, err := json.Marshal(prj)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
 	w.Header().Set("Content-Type", "application/json")
 	w.Write(js)
 }
