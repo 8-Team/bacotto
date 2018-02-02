@@ -80,6 +80,7 @@ func prjList(w http.ResponseWriter, r *http.Request) {
 	w.Write(js)
 }
 
+// EtryProject from otto ...
 type OttoProjectEntry struct {
 	ProjectID uint
 	StartDate time.Time
@@ -120,20 +121,18 @@ func registerEntry(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
-	log.Info(prj)
 
 	log.Info("User id", otto.UserID, otto.Serial)
-	entry := db.ProjectEntry{UserID: 0, ProjectID: t.ProjectID,
+	entry := db.ProjectEntry{UserID: *otto.UserID, ProjectID: t.ProjectID,
 		StartTime: t.StartDate,
 		EndTime:   t.StartDate.Add(t.Duration)}
 
-	if db.DB.NewRecord(rec) {
-		db.DB.Create(&rec)
-	}
-	if err := db.DB.Create(&entry, "project_id = ?", entry.ProjectID).Error; err != nil {
-		log.Error("Unable to add entry", err)
-		w.WriteHeader(http.StatusInternalServerError)
-		return
+	if db.DB.NewRecord(entry) {
+		if err := db.DB.Create(&entry).Error; err != nil {
+			log.Error("Unable to add entry", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
 	}
 }
 
