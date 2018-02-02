@@ -2,7 +2,8 @@
     "projects": [
         { "id": 0, "name": "Progetto 2017 mock 1" },
         { "id": 1, "name": "Project 2015 04 mock 2" },
-        { "id": 2, "name": "education" }
+        { "id": 2, "name": "education" },
+        { "id": 3, "name": "Progetti / Customer 2016 07 HW - 2A Prototipo AAZZ" }
     ],
     "entries": [
         { "id": 0, "projectId": 0, "description": "test descrizione mock 1", 
