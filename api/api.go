@@ -41,7 +41,7 @@ func prjList(w http.ResponseWriter, r *http.Request) {
 
 	prj := []db.Project{}
 	// read from db
-	if db.DB.Find(&prj).RecordNotFound() {
+	if db.DB.Order("updated_at desc, name").Find(&prj).RecordNotFound() {
 		log.Errorln("Unable to get connection to ERP")
 		w.WriteHeader(http.StatusInternalServerError)
 		return
@@ -73,7 +73,7 @@ func prjList(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 		// Reload updated projects
-		if db.DB.Find(&prj).RecordNotFound() {
+		if db.DB.Order("created_at desc, name").Find(&prj).RecordNotFound() {
 			log.Errorln("Unable to get connection to ERP")
 			w.WriteHeader(http.StatusInternalServerError)
 			return
