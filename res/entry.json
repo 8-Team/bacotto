@@ -1,7 +1,23 @@
-{
-  "ProjectId": 1,
+[
+  {
+  "ProjectId": 6,
   "StartDate": "2018-01-17T15:07:44.723715405+01:00",
-  "Duration":12345,
+  "Duration":60,
   "serial":"FFFFFF",
   "otp":"12345"
-}
+  },
+  {
+  "ProjectId": 5,
+  "StartDate": "2018-02-20T09:07:44.723715405+01:00",
+  "Duration":120,
+  "serial":"FFFFFF",
+  "otp":"12345"
+  },
+  {
+  "ProjectId": 5,
+  "StartDate": "2018-02-20T14:07:44.723715405+01:00",
+  "Duration":35,
+  "serial":"FFFFFF",
+  "otp":"12345"
+  }
+]
