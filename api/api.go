@@ -89,7 +89,7 @@ func prjList(w http.ResponseWriter, r *http.Request) {
 	w.Write(js)
 }
 
-// EtryProject from otto ...
+// OttoProjectEntry ... EtryProject from otto
 type OttoProjectEntry struct {
 	ProjectID uint
 	StartDate time.Time
@@ -100,17 +100,62 @@ type OttoProjectEntry struct {
 
 func registerEntry(w http.ResponseWriter, r *http.Request) {
 	decoder := json.NewDecoder(r.Body)
-	var t OttoProjectEntry
-	err := decoder.Decode(&t)
+	var items []OttoProjectEntry
+	err := decoder.Decode(&items)
 	if err != nil {
 		log.Error(err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 	defer r.Body.Close()
-	log.Info(t.ProjectID, t.StartDate, t.Duration)
+	for _, t := range items {
+		log.Info(t)
+		otto, err := Authorize(t.Serial, t.OTP)
+		if err != nil {
+			log.Errorln(err)
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+		if otto.UserID == nil {
+			log.Error("No user registered for this Otto.")
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
 
-	otto, err := Authorize(t.Serial, t.OTP)
+		// search project by id and add/update entry
+		prj := db.Project{}
+		if db.DB.Find(&prj, t.ProjectID).RecordNotFound() {
+			log.Error("Invalid Project ID: ", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		log.Info("User id", otto.UserID, otto.Serial)
+		entry := db.ProjectEntry{UserID: *otto.UserID, ProjectID: t.ProjectID,
+			StartTime: t.StartDate,
+			EndTime:   t.StartDate.Add(t.Duration * time.Minute)}
+
+		if db.DB.NewRecord(entry) {
+			if err := db.DB.Create(&entry).Error; err != nil {
+				log.Error("Unable to add entry", err)
+				w.WriteHeader(http.StatusInternalServerError)
+				return
+			}
+		}
+	}
+
+}
+
+// OttoStatsProject ... Registered stats from otto
+type OttoStatsProject struct {
+	ProjectID string
+	Duration  time.Duration
+}
+
+func prjStats(w http.ResponseWriter, r *http.Request) {
+	serial := r.FormValue("serial")
+	otp := r.FormValue("otp")
+	otto, err := Authorize(serial, otp)
 	if err != nil {
 		log.Errorln(err)
 		w.WriteHeader(http.StatusUnauthorized)
@@ -123,32 +168,62 @@ func registerEntry(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// search project by id and add/update entry
-	prj := db.Project{}
-	if db.DB.Find(&prj, t.ProjectID).RecordNotFound() {
-		log.Error("Invalid Project ID: ", err)
+	projectID := r.FormValue("project_id")
+	if projectID == "" {
+		log.Error("No valid project_id")
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
-	log.Info("User id", otto.UserID, otto.Serial)
-	entry := db.ProjectEntry{UserID: *otto.UserID, ProjectID: t.ProjectID,
-		StartTime: t.StartDate,
-		EndTime:   t.StartDate.Add(t.Duration)}
+	d := r.FormValue("date")
+	log.Info(d)
+	date, err := time.Parse("2006-01-02", d)
+	if err != nil {
+		log.Error("Wrong date format.")
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
 
-	if db.DB.NewRecord(entry) {
-		if err := db.DB.Create(&entry).Error; err != nil {
-			log.Error("Unable to add entry", err)
+	stats := OttoStatsProject{}
+	entry := []db.ProjectEntry{}
+
+	switch r.FormValue("when") {
+	case "day":
+		log.Info("Day:", date)
+		if db.DB.Where("user_id = ? AND project_id = ? AND cast(start_time as date) = ?", otto.UserID, projectID, d).Find(&entry).RecordNotFound() {
+			log.Error("Invalid Project ID: ", err)
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
+		for _, item := range entry {
+			stats.Duration += item.EndTime.Sub(item.StartTime)
+		}
+		stats.ProjectID = projectID
+	case "week":
+		log.Info("week:", date)
+	case "month":
+		log.Info("month:", date)
+	default:
+		log.Error("Invalid when parameter: ", r.FormValue("when"))
+		w.WriteHeader(http.StatusInternalServerError)
+		return
 	}
+	log.Info("Stas: projectid: ", stats.ProjectID, ", duration: ", stats.Duration)
+	js, err := json.Marshal(stats)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.Write(js)
 }
 
+//ListenAndServe ... Otto endpoints
 func ListenAndServe(addr string) error {
 	http.HandleFunc("/ping", pong)
 	http.HandleFunc("/prjlist", prjList)
 	http.HandleFunc("/register", registerEntry)
+	http.HandleFunc("/stats", prjStats)
 
 	if conf.UseHTTPS() {
 		return http.ListenAndServeTLS(addr,
