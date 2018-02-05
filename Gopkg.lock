@@ -44,16 +44,16 @@
   version = "v0.1.0"
 
 [[projects]]
-  branch = "master"
-  name = "github.com/plorefice/slackbot"
-  packages = ["."]
-  revision = "1d039f3e3f0511d0400c989ee4f077a0da8642f6"
-
-[[projects]]
   name = "github.com/pquerna/otp"
   packages = [".","hotp","totp"]
   revision = "b7b89250c468c06871d3837bee02e2d5c155ae19"
   version = "v1.0.0"
+
+[[projects]]
+  name = "github.com/satori/go.uuid"
+  packages = ["."]
+  revision = "f58768cc1a7a7e77a3bd49e98cdd21419399b6a3"
+  version = "v1.2.0"
 
 [[projects]]
   branch = "master"
@@ -76,6 +76,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "1c41bd1d89b7ba332ea467721a94da8e4eb642958c8a2bcd080838552921a52c"
+  inputs-digest = "828c1c1411ea0816e74d632e7dbef9d3b28fd34e457ee44738869300b0a01d04"
   solver-name = "gps-cdcl"
   solver-version = 1

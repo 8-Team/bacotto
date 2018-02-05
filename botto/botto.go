@@ -16,9 +16,12 @@ type slackbot struct {
 	client    *slack.Client
 	rtm       *slack.RTM
 	asyncEvts chan *interactiveResponse
+	callbacks map[string]eventCallback
 
 	contexts map[string]*userContext
 }
+
+type eventCallback func(*slackbot, *interactiveResponse)
 
 var log = logrus.WithField("app", "botto")
 
@@ -35,6 +38,7 @@ func ListenAndServe(token string) error {
 	bot.rtm = bot.client.NewRTM()
 	bot.contexts = make(map[string]*userContext)
 	bot.asyncEvts = make(chan *interactiveResponse)
+	bot.callbacks = make(map[string]eventCallback)
 
 	go bot.rtm.ManageConnection()
 
@@ -65,13 +69,17 @@ func ListenAndServe(token string) error {
 
 func InteractiveEventHandler(w http.ResponseWriter, r *http.Request) {
 	resp := new(interactiveResponse)
+	payload := r.FormValue("payload")
 
-	if err := json.NewDecoder(r.Body).Decode(resp); err != nil {
+	if err := json.Unmarshal([]byte(payload), resp); err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
+		log.Errorln(err)
 		return
 	}
 
 	bot.asyncEvts <- resp
+
+	w.WriteHeader(http.StatusOK)
 }
 
 func (b *slackbot) dispatchMsgEvent(ev *slack.MessageEvent) {
@@ -95,11 +103,20 @@ func (b *slackbot) dispatchMsgEvent(ev *slack.MessageEvent) {
 }
 
 func (b *slackbot) dispatchAsync(resp *interactiveResponse) {
-	ctx, ok := b.contexts[resp.User.ID]
+	cb, ok := b.callbacks[resp.CallbackID]
 	if !ok {
-		log.Errorln("async event for non-existing user context")
+		log.Errorln("invalid callback for async response")
 		return
 	}
 
-	ctx.dispatcher(b, resp)
+	cb(b, resp)
+	b.removeCallback(resp.CallbackID)
+}
+
+func (b *slackbot) registerCallback(id string, cb eventCallback) {
+	b.callbacks[id] = cb
+}
+
+func (b *slackbot) removeCallback(id string) {
+	delete(b.callbacks, id)
 }

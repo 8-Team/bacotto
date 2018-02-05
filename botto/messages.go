@@ -2,6 +2,7 @@ package botto
 
 import (
 	"github.com/nlopes/slack"
+	uuid "github.com/satori/go.uuid"
 )
 
 type interactiveElement interface {
@@ -21,7 +22,7 @@ type messageMenu struct {
 }
 
 type messageFormat struct {
-	Callback string
+	Callback eventCallback
 	Elements []interactiveElement
 }
 
@@ -31,10 +32,11 @@ func (b *slackbot) Message(channel string, text string) {
 
 func (b *slackbot) InteractiveMessage(channel string, text string, msg messageFormat) {
 	parm := slack.NewPostMessageParameters()
+	uid := uuid.NewV4().String()
 
 	attch := slack.Attachment{
 		Fallback:   text,
-		CallbackID: msg.Callback,
+		CallbackID: uid,
 		Actions:    make([]slack.AttachmentAction, len(msg.Elements)),
 	}
 
@@ -44,6 +46,7 @@ func (b *slackbot) InteractiveMessage(channel string, text string, msg messageFo
 
 	parm.Attachments = []slack.Attachment{attch}
 
+	bot.registerCallback(uid, msg.Callback)
 	bot.client.PostMessage(channel, text, parm)
 }
 

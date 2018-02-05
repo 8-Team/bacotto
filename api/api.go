@@ -3,22 +3,21 @@ package api
 import (
 	"encoding/json"
 	"net/http"
-	"strings"
 	"time"
 
+	"github.com/8-team/bacotto/botto"
 	"github.com/8-team/bacotto/conf"
 	"github.com/8-team/bacotto/db"
-	"github.com/8-team/bacotto/erp"
 	"github.com/Sirupsen/logrus"
 )
 
 var log = logrus.WithField("app", "api")
 
-func isAuthorize(r *http.Request) bool {
+func isAuthorized(r *http.Request) bool {
 	serial := r.FormValue("serial")
 	otp := r.FormValue("otp")
 
-	if _, err := Authorize(serial, otp); err != nil {
+	if _, err := db.Authorize(serial, otp); err != nil {
 		log.Errorln(err)
 		return false
 	}
@@ -26,65 +25,33 @@ func isAuthorize(r *http.Request) bool {
 }
 
 func pong(w http.ResponseWriter, r *http.Request) {
-	if !isAuthorize(r) {
+	if !isAuthorized(r) {
 		w.WriteHeader(http.StatusUnauthorized)
 		return
 	}
 	w.WriteHeader(http.StatusOK)
 }
 
-func prjList(w http.ResponseWriter, r *http.Request) {
-	if !isAuthorize(r) {
+func listProjects(w http.ResponseWriter, r *http.Request) {
+	serial := r.FormValue("serial")
+
+	if !isAuthorized(r) {
 		w.WriteHeader(http.StatusUnauthorized)
 		return
 	}
 
-	prj := []db.Project{}
-	// read from db
-	if db.DB.Order("updated_at desc, name").Find(&prj).RecordNotFound() {
-		log.Errorln("Unable to get connection to ERP")
-		w.WriteHeader(http.StatusInternalServerError)
+	projects, err := db.GetProjects(serial)
+	if err != nil {
+		w.WriteHeader(http.StatusUnauthorized)
 		return
 	}
 
-	prefered := r.FormValue("prefered")
-	log.Info("Prefered: ", prefered)
-	if strings.Compare(prefered, "true") != 0 {
-		// sync db
-		if err := erp.Open(); err != nil {
-			log.Errorln("Unable to get connection to ERP", err)
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
-		erpPrjs, err := erp.ListProjects()
-		if err != nil {
-			log.Errorln("Unable to get prj list from ERP", err)
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
-
-		//Update local db reading project from openERP
-		for _, item := range erpPrjs {
-			p := db.Project{Name: item.Name, ShortName: ""}
-			if err := db.DB.FirstOrCreate(&p, "name = ?", item.Name).Error; err != nil {
-				log.Error("Unable to add new project to db")
-				w.WriteHeader(http.StatusInternalServerError)
-				return
-			}
-		}
-		// Reload updated projects
-		if db.DB.Order("created_at desc, name").Find(&prj).RecordNotFound() {
-			log.Errorln("Unable to get connection to ERP")
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
-	}
-
-	js, err := json.Marshal(prj)
+	js, err := json.Marshal(projects)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
+
 	w.Header().Set("Content-Type", "application/json")
 	w.Write(js)
 }
@@ -110,7 +77,7 @@ func registerEntry(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
 	for _, t := range items {
 		log.Info(t)
-		otto, err := Authorize(t.Serial, t.OTP)
+		otto, err := db.Authorize(t.Serial, t.OTP)
 		if err != nil {
 			log.Errorln(err)
 			w.WriteHeader(http.StatusUnauthorized)
@@ -155,7 +122,7 @@ type OttoStatsProject struct {
 func prjStats(w http.ResponseWriter, r *http.Request) {
 	serial := r.FormValue("serial")
 	otp := r.FormValue("otp")
-	otto, err := Authorize(serial, otp)
+	otto, err := db.Authorize(serial, otp)
 	if err != nil {
 		log.Errorln(err)
 		w.WriteHeader(http.StatusUnauthorized)
@@ -233,9 +200,10 @@ func prjStats(w http.ResponseWriter, r *http.Request) {
 //ListenAndServe ... Otto endpoints
 func ListenAndServe(addr string) error {
 	http.HandleFunc("/ping", pong)
-	http.HandleFunc("/prjlist", prjList)
+	http.HandleFunc("/projects", listProjects)
 	http.HandleFunc("/register", registerEntry)
 	http.HandleFunc("/stats", prjStats)
+	http.HandleFunc("/slack_api", botto.InteractiveEventHandler)
 
 	if conf.UseHTTPS() {
 		return http.ListenAndServeTLS(addr,

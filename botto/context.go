@@ -24,12 +24,8 @@ func (uc *userContext) init(ev contextEvent) {
 	if err := db.DB.First(uc.user, "username = ?", ev.user()).Error; err != nil {
 		uc.dispatcher = uc.registerUser
 	} else {
-		uc.dispatcher = uc.pickProjects
+		uc.dispatcher = uc.parseCommand
 	}
-}
-
-func (uc *userContext) genericDispatcher(bot *slackbot, ev contextEvent) {
-	bot.Message(ev.channel(), "generic dispatcher")
 }
 
 type interactiveResponse struct {

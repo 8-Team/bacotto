@@ -5,7 +5,6 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/8-team/bacotto/api"
 	"github.com/8-team/bacotto/db"
 )
 
@@ -31,7 +30,7 @@ func (uc *userContext) validateOtp(otp string) error {
 		return errors.New("Sorry, the OTP must be a 6-digit number")
 	}
 
-	if _, err := api.Authorize(uc.currentDevice.Serial, otp); err != nil {
+	if _, err := db.Authorize(uc.currentDevice.Serial, otp); err != nil {
 		return errors.New("Sorry, this OTP is not valid, try again")
 	}
 
@@ -55,7 +54,7 @@ func (uc *userContext) createUser(username string) error {
 
 func (uc *userContext) registerUser(bot *slackbot, ev contextEvent) {
 	text := `Hi! I'm Botto and I'll be your guide in the magic world of Otto :8ball:
-I see this is the first time using your Otto, so let's get you up and running!
+Looks like this is your first time using your Otto, so let's get you up and running!
 To get started, please input your Otto's serial number. You can find it on the back of your device.`
 
 	bot.Message(ev.channel(), text)
@@ -82,8 +81,8 @@ func (uc *userContext) inputOtp(bot *slackbot, ev contextEvent) {
 		return
 	}
 
-	bot.Message(ev.channel(), "Fantastic, let's move on!")
+	bot.Message(ev.channel(), "Fantastic, let's try adding a project to your Otto!")
 
-	uc.dispatcher = uc.pickProjects
+	uc.dispatcher = uc.pickProject
 	uc.dispatcher(bot, ev)
 }
