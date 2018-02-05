@@ -198,16 +198,28 @@ func prjStats(w http.ResponseWriter, r *http.Request) {
 		for _, item := range entry {
 			stats.Duration += item.EndTime.Sub(item.StartTime)
 		}
-		stats.ProjectID = projectID
 	case "week":
 		log.Info("week:", date)
 	case "month":
 		log.Info("month:", date)
+		_, m, _ := date.Date()
+		if db.DB.Where("user_id = ? AND project_id = ? AND EXTRACT(MONTH FROM start_time) = ?", otto.UserID, projectID, m).Find(&entry).RecordNotFound() {
+			log.Error("Invalid Project ID: ", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		for _, item := range entry {
+			stats.Duration += item.EndTime.Sub(item.StartTime)
+		}
+
 	default:
 		log.Error("Invalid when parameter: ", r.FormValue("when"))
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
+
+	stats.ProjectID = projectID
+	stats.Duration = stats.Duration / 1000000000
 	log.Info("Stas: projectid: ", stats.ProjectID, ", duration: ", stats.Duration)
 	js, err := json.Marshal(stats)
 	if err != nil {
