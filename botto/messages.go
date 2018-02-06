@@ -21,8 +21,9 @@ type messageMenu struct {
 	Values map[string]string
 }
 
-type messageFormat struct {
+type interactiveMessage struct {
 	Callback eventCallback
+	Text     string
 	Elements []interactiveElement
 }
 
@@ -30,13 +31,14 @@ func (b *slackbot) Message(channel string, text string) {
 	b.client.PostMessage(channel, text, slack.NewPostMessageParameters())
 }
 
-func (b *slackbot) InteractiveMessage(channel string, text string, msg messageFormat) {
+func (b *slackbot) InteractiveMessage(channel string, text string, msg interactiveMessage) {
 	parm := slack.NewPostMessageParameters()
 	uid := uuid.NewV4().String()
 
 	attch := slack.Attachment{
 		Fallback:   text,
 		CallbackID: uid,
+		Text:       msg.Text,
 		Actions:    make([]slack.AttachmentAction, len(msg.Elements)),
 	}
 
@@ -48,6 +50,30 @@ func (b *slackbot) InteractiveMessage(channel string, text string, msg messageFo
 
 	bot.registerCallback(uid, msg.Callback)
 	bot.client.PostMessage(channel, text, parm)
+}
+
+func (b *slackbot) Update(resp *interactiveResponse, msg interactiveMessage) {
+	parm := slack.NewPostMessageParameters()
+
+	attch := slack.Attachment{
+		Fallback:   resp.text(),
+		CallbackID: resp.CallbackID,
+		Text:       msg.Text,
+		Actions:    make([]slack.AttachmentAction, len(msg.Elements)),
+	}
+
+	for i, e := range msg.Elements {
+		attch.Actions[i] = e.toAction()
+	}
+
+	parm.Attachments = []slack.Attachment{attch}
+
+	bot.client.SendMessage(
+		resp.channel(),
+		slack.MsgOptionUpdate(resp.MessageTs),
+		slack.MsgOptionAttachments(parm.Attachments...),
+		slack.MsgOptionPostMessageParameters(parm),
+	)
 }
 
 func (mb messageButton) toAction() slack.AttachmentAction {

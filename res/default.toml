@@ -13,3 +13,6 @@ fixture_uri   = "./res/test-data.csv"
 [erp]
 use_mock       = true
 mock_data_path = "./res/test-erp.json"
+
+[log]
+debug          = false

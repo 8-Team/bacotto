@@ -22,6 +22,7 @@ func (uc *userContext) init(ev contextEvent) {
 	uc.user = new(db.User)
 
 	if err := db.DB.First(uc.user, "username = ?", ev.user()).Error; err != nil {
+		log.Debugln("User not found in DB, proceeding with registration")
 		uc.dispatcher = uc.registerUser
 	} else {
 		uc.dispatcher = uc.parseCommand
@@ -29,11 +30,7 @@ func (uc *userContext) init(ev contextEvent) {
 }
 
 type interactiveResponse struct {
-	CallbackID string                   `json:"callback_id"`
-	Channel    slack.Channel            `json:"channel"`
-	Team       slack.Team               `json:"team"`
-	User       slack.User               `json:"user"`
-	Actions    []slack.AttachmentAction `json:"actions"`
+	*slack.AttachmentActionCallback
 }
 
 func (ir *interactiveResponse) user() string {
@@ -45,7 +42,7 @@ func (ir *interactiveResponse) channel() string {
 }
 
 func (ir *interactiveResponse) text() string {
-	panic("Interactive responses have no text!")
+	return ir.OriginalMessage.Text
 }
 
 type messageEvent struct {

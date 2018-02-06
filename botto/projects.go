@@ -16,7 +16,9 @@ func (uc *userContext) projectSelected(bot *slackbot, resp *interactiveResponse)
 	uc.user.Projects = append(uc.user.Projects, project)
 	db.DB.Save(uc.user)
 
-	bot.Message(resp.channel(), "Project added, check you Otto's project list!")
+	bot.Update(resp, interactiveMessage{
+		Text: ":heavy_check_mark: Project successfully added!",
+	})
 }
 
 func (uc *userContext) pickProject(bot *slackbot, ev contextEvent) {
@@ -37,13 +39,13 @@ func (uc *userContext) pickProject(bot *slackbot, ev contextEvent) {
 		menu.Values[p.Name] = p.Name
 	}
 
-	fmt := messageFormat{
+	msg := interactiveMessage{
 		Callback: uc.projectSelected,
 		Elements: []interactiveElement{menu},
 	}
 
 	bot.InteractiveMessage(ev.channel(), "Here is a list of your recent projects, "+
-		"select the ones you want to see on your device:", fmt)
+		"select the ones you want to see on your device:", msg)
 
 	uc.dispatcher = uc.parseCommand
 }

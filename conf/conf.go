@@ -29,11 +29,16 @@ type ERP struct {
 	MockDataPath string `toml:"mock_data_path"`
 }
 
+type Log struct {
+	Debug bool `toml:"debug"`
+}
+
 type conf struct {
 	API API `toml:"api"`
 	Bot Bot `toml:"bot"`
 	DB  DB  `toml:"db"`
 	ERP ERP `toml:"erp"`
+	Log Log `toml:"log"`
 }
 
 var gc conf
@@ -97,4 +102,8 @@ func UseMockERP() bool {
 
 func MockERPDataPath() string {
 	return gc.ERP.MockDataPath
+}
+
+func DebugLogLevel() bool {
+	return gc.Log.Debug
 }

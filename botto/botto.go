@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/8-team/bacotto/conf"
 	"github.com/Sirupsen/logrus"
 	"github.com/nlopes/slack"
 )
@@ -23,9 +24,15 @@ type slackbot struct {
 
 type eventCallback func(*slackbot, *interactiveResponse)
 
-var log = logrus.WithField("app", "botto")
-
+var log *logrus.Entry
 var bot *slackbot
+
+func init() {
+	if conf.DebugLogLevel() {
+		logrus.SetLevel(logrus.DebugLevel)
+	}
+	log = logrus.WithField("app", "botto")
+}
 
 // ListenAndServe starts the bot using the given API token
 func ListenAndServe(token string) error {
@@ -52,6 +59,7 @@ func ListenAndServe(token string) error {
 				log.Infof("%s is online @ %s", ev.Info.User.Name, ev.Info.Team.Name)
 
 			case *slack.MessageEvent:
+				log.Debugln("Message event received")
 				bot.dispatchMsgEvent(ev)
 
 			case *slack.RTMError:
@@ -62,6 +70,7 @@ func ListenAndServe(token string) error {
 			}
 
 		case ev := <-bot.asyncEvts:
+			log.Debugln("Async event received")
 			bot.dispatchAsync(ev)
 		}
 	}
@@ -84,7 +93,7 @@ func InteractiveEventHandler(w http.ResponseWriter, r *http.Request) {
 
 func (b *slackbot) dispatchMsgEvent(ev *slack.MessageEvent) {
 	// Only handle messages from other users
-	if ev.User == b.id || (ev.Msg.Type != "message" ||
+	if ev.User == "" || ev.User == b.id || (ev.Msg.Type != "message" ||
 		(ev.Msg.SubType == "message_deleted" || ev.Msg.SubType == "bot_message")) {
 		return
 	}
@@ -95,6 +104,7 @@ func (b *slackbot) dispatchMsgEvent(ev *slack.MessageEvent) {
 	}
 
 	if _, ok := b.contexts[ev.User]; !ok {
+		log.Debugf("Missing user context for %s, creating one", ev.User)
 		b.contexts[ev.User] = new(userContext)
 		b.contexts[ev.User].init(&messageEvent{ev})
 	}
@@ -103,14 +113,16 @@ func (b *slackbot) dispatchMsgEvent(ev *slack.MessageEvent) {
 }
 
 func (b *slackbot) dispatchAsync(resp *interactiveResponse) {
-	cb, ok := b.callbacks[resp.CallbackID]
+	eventCallback, ok := b.callbacks[resp.CallbackID]
 	if !ok {
 		log.Errorln("invalid callback for async response")
 		return
 	}
 
-	cb(b, resp)
-	b.removeCallback(resp.CallbackID)
+	if eventCallback != nil {
+		eventCallback(b, resp)
+		b.removeCallback(resp.CallbackID)
+	}
 }
 
 func (b *slackbot) registerCallback(id string, cb eventCallback) {
