@@ -37,7 +37,7 @@ type User struct {
 type Project struct {
 	gorm.Model
 
-	Name      string
+	Name      string `gorm:"not null;unique_index"`
 	ShortName string
 }
 

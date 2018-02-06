@@ -52,6 +52,10 @@ func AddProject(u *User, p *Project) error {
 	return DB.Save(u).Error
 }
 
+func InsertProject(p *Project) error {
+	return DB.FirstOrCreate(p, "name = ?", p.Name).Error
+}
+
 // Authorize authenticates a request from an Otto by using the provided OTP code.
 func Authorize(serial string, otp string) (*Otto, error) {
 	otto, err := GetOtto(serial)

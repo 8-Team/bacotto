@@ -22,6 +22,11 @@ func main() {
 		log.Warnln("Configuration file not found, falling back to defaults")
 	}
 
+	if err := erp.Open(); err != nil {
+		panic(err)
+	}
+	defer erp.Close()
+
 	if err := db.Open(conf.GetDatabaseURI()); err != nil {
 		panic(err)
 	}
@@ -32,17 +37,6 @@ func main() {
 			panic(err)
 		}
 	}
-
-	if conf.GetFixtureURI() != "" {
-		if err := db.SyncFixture(conf.GetFixtureURI()); err != nil {
-			panic(err)
-		}
-	}
-
-	if err := erp.Open(); err != nil {
-		panic(err)
-	}
-	defer erp.Close()
 
 	go func() {
 		for {

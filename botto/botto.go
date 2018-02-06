@@ -27,18 +27,16 @@ type eventCallback func(*slackbot, *interactiveResponse)
 var log *logrus.Entry
 var bot *slackbot
 
-func init() {
-	if conf.DebugLogLevel() {
-		logrus.SetLevel(logrus.DebugLevel)
-	}
-	log = logrus.WithField("app", "botto")
-}
-
 // ListenAndServe starts the bot using the given API token
 func ListenAndServe(token string) error {
 	if bot != nil {
 		return errors.New("bot already connected")
 	}
+
+	if conf.DebugLogLevel() {
+		logrus.SetLevel(logrus.DebugLevel)
+	}
+	log = logrus.WithField("app", "botto")
 
 	bot = new(slackbot)
 	bot.client = slack.New(token)
