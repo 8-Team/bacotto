@@ -6,9 +6,7 @@ import (
 )
 
 type userContext struct {
-	user          *db.User
-	currentDevice *db.Otto
-
+	user       *db.User
 	dispatcher func(bot *slackbot, ev contextEvent)
 }
 
@@ -21,7 +19,7 @@ type contextEvent interface {
 func (uc *userContext) init(ev contextEvent) {
 	uc.user = new(db.User)
 
-	if err := db.DB.First(uc.user, "username = ?", ev.user()).Error; err != nil {
+	if err := db.DB.Preload("Otto").First(uc.user, "username = ?", ev.user()).Error; err != nil {
 		log.Debugln("User not found in DB, proceeding with registration")
 		uc.dispatcher = uc.registerUser
 	} else {

@@ -25,8 +25,9 @@ type Otto struct {
 type User struct {
 	gorm.Model
 
-	Username       string          `gorm:"not null;unique_index"`
-	Ottos          []*Otto         `gorm:"ForeignKey:UserID"`
+	Username string `gorm:"not null;unique_index"`
+	Otto     Otto   `gorm:"ForeignKey:UserID"`
+
 	ProjectEntries []*ProjectEntry `gorm:"ForeignKey:UserID"`
 	Projects       []*Project      `gorm:"many2many:user_projects;"`
 

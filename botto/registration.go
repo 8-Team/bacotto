@@ -15,11 +15,11 @@ func (uc *userContext) validateSerial(serial string) error {
 		return errors.New("Sorry, the serial number must be a 6-digit hex number")
 	}
 
-	uc.currentDevice = new(db.Otto)
-	if db.DB.First(uc.currentDevice, "serial = ?", serial).RecordNotFound() {
+	if db.DB.First(&uc.user.Otto, "serial = ?", serial).RecordNotFound() {
 		return errors.New("Sorry, I can't find a matching serial. Could you double-check it?")
 	}
 
+	db.DB.Save(uc.user)
 	return nil
 }
 
@@ -30,7 +30,7 @@ func (uc *userContext) validateOtp(otp string) error {
 		return errors.New("Sorry, the OTP must be a 6-digit number")
 	}
 
-	if _, err := db.Authorize(uc.currentDevice.Serial, otp); err != nil {
+	if _, err := db.Authorize(uc.user.Otto.Serial, otp); err != nil {
 		return errors.New("Sorry, this OTP is not valid, try again")
 	}
 
@@ -45,9 +45,6 @@ func (uc *userContext) createUser(username string) error {
 	if db.DB.Create(user).Error != nil {
 		return errors.New("There was an error during registration, try again")
 	}
-
-	uc.currentDevice.UserID = &user.ID
-	db.DB.Save(uc.currentDevice)
 
 	return nil
 }

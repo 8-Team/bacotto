@@ -1,6 +1,8 @@
 package botto
 
 import (
+	"fmt"
+
 	"github.com/8-team/bacotto/db"
 )
 
@@ -26,7 +28,6 @@ func (uc *userContext) pickProject(bot *slackbot, ev contextEvent) {
 
 	if err := db.DB.Find(&projects).Error; err != nil {
 		bot.Message(ev.channel(), "There was a problem retrieving your projects, try later.")
-		uc.dispatcher = uc.parseCommand
 		return
 	}
 
@@ -46,6 +47,23 @@ func (uc *userContext) pickProject(bot *slackbot, ev contextEvent) {
 
 	bot.InteractiveMessage(ev.channel(), "Here is a list of your recent projects, "+
 		"select the ones you want to see on your device:", msg)
+
+	uc.dispatcher = uc.parseCommand
+}
+
+func (uc *userContext) listProjects(bot *slackbot, ev contextEvent) {
+	projects, err := db.GetProjects(uc.user.Otto.Serial)
+	if err != nil {
+		bot.Message(ev.channel(), "There was a problem retrieving your projects, try later.")
+		return
+	}
+
+	resp := "Here's a list of your currently tracked projects:\n"
+	for _, prj := range projects {
+		resp += fmt.Sprintf("* %s\n", prj.Name)
+	}
+
+	bot.Message(ev.channel(), resp)
 
 	uc.dispatcher = uc.parseCommand
 }
