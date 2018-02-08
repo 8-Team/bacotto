@@ -1,4 +1,4 @@
-package botto
+package graph
 
 import (
 	"fmt"
