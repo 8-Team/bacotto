@@ -46,6 +46,10 @@ func listProjects(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if projects == nil {
+		projects = []*db.Project{}
+	}
+
 	js, err := json.Marshal(projects)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
