@@ -20,6 +20,12 @@
   revision = "3cfea5ab600ae37946be2b763b8ec2c1cf2d272d"
 
 [[projects]]
+  branch = "master"
+  name = "github.com/golang/freetype"
+  packages = ["raster","truetype"]
+  revision = "e2365dfdc4a05e4b8299a783240d4a7d5a65d4e4"
+
+[[projects]]
   name = "github.com/jinzhu/gorm"
   packages = [".","dialects/postgres"]
   revision = "5174cc5c242a728b435ea2be8a2f7f998e15429b"
@@ -36,6 +42,12 @@
   name = "github.com/lib/pq"
   packages = [".","hstore","oid"]
   revision = "b609790bd85edf8e9ab7e0f8912750a786177bcf"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/llgcode/draw2d"
+  packages = [".","draw2dbase","draw2dimg"]
+  revision = "274031cf2abe8acd15c4a911e1f7f1295fc4830c"
 
 [[projects]]
   name = "github.com/nlopes/slack"
@@ -63,6 +75,12 @@
 
 [[projects]]
   branch = "master"
+  name = "golang.org/x/image"
+  packages = ["draw","font","font/gofont/gobold","font/gofont/goitalic","font/gofont/gomono","font/gofont/goregular","math/f64","math/fixed"]
+  revision = "12117c17ca67ffa1ce22e9409f3b0b0a93ac08c7"
+
+[[projects]]
+  branch = "master"
   name = "golang.org/x/net"
   packages = ["websocket"]
   revision = "01c190206fbdffa42f334f4b2bf2220f50e64920"
@@ -76,6 +94,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "828c1c1411ea0816e74d632e7dbef9d3b28fd34e457ee44738869300b0a01d04"
+  inputs-digest = "8d8e4e0a58674464fc08fdaed4e2914cd1870eec7080e36ec2eb082a8adecfe7"
   solver-name = "gps-cdcl"
   solver-version = 1
