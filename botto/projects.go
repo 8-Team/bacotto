@@ -52,7 +52,7 @@ func (uc *userContext) pickProject(bot *slackbot, ev contextEvent) {
 }
 
 func (uc *userContext) listProjects(bot *slackbot, ev contextEvent) {
-	projects, err := db.GetProjects(uc.user.Otto.Serial)
+	projects, err := db.GetUserProjects(uc.user)
 	if err != nil {
 		bot.Message(ev.channel(), "There was a problem retrieving your projects, try later.")
 		return

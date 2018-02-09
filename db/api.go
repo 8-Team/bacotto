@@ -2,6 +2,7 @@ package db
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/8-team/bacotto/conf"
 	"github.com/pquerna/otp/totp"
@@ -32,22 +33,21 @@ func GetUserFromSerial(serial string) (*User, error) {
 	return user, nil
 }
 
-func GetProjects(serial string) ([]*Project, error) {
-	user := new(User)
-
-	otto, err := GetOtto(serial)
-	if err != nil {
+func GetUserProjects(u *User) ([]*Project, error) {
+	if err := DB.Preload("Projects").First(u, "id = ?", u.ID).Error; err != nil {
 		return nil, err
 	}
-
-	if err := DB.Preload("Projects").First(user, "id = ?", otto.UserID).Error; err != nil {
-		return nil, err
-	}
-
-	return user.Projects, nil
+	return u.Projects, nil
 }
 
-func AddProject(u *User, p *Project) error {
+func GetUserEntries(u *User, from time.Time, to time.Time) ([]*ProjectEntry, error) {
+	if err := DB.Preload("ProjectEntries").First(u, "id = ?", u.ID).Error; err != nil {
+		return nil, err
+	}
+	return u.ProjectEntries, nil
+}
+
+func AddProjectToUser(u *User, p *Project) error {
 	u.Projects = append(u.Projects, p)
 	return DB.Save(u).Error
 }

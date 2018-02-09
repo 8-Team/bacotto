@@ -12,6 +12,7 @@ import (
 func (uc *userContext) showReport(bot *slackbot, ev contextEvent) {
 	pc := graph.NewPunchcard()
 	pc.SetDay(time.Now())
+
 	pc.AddTask("Mock entry", time.Date(0, 0, 0, 9, 42, 0, 0, time.Local),
 		time.Date(0, 0, 0, 13, 2, 0, 0, time.Local))
 

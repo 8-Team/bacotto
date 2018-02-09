@@ -40,7 +40,13 @@ func listProjects(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	projects, err := db.GetProjects(serial)
+	user, err := db.GetUserFromSerial(serial)
+	if err != nil {
+		w.WriteHeader(http.StatusUnauthorized)
+		return
+	}
+
+	projects, err := db.GetUserProjects(user)
 	if err != nil {
 		w.WriteHeader(http.StatusUnauthorized)
 		return
