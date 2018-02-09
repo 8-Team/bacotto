@@ -66,51 +66,64 @@ func listProjects(w http.ResponseWriter, r *http.Request) {
 	w.Write(js)
 }
 
+type OttoRegisterBody struct {
+	Serial  string             `json:"serial"`
+	OTP     string             `json:"otp"`
+	Entries []OttoProjectEntry `json:"entries"`
+}
+
 // OttoProjectEntry ... EtryProject from otto
 type OttoProjectEntry struct {
-	ProjectID uint
-	StartDate time.Time
-	Duration  time.Duration
-	Serial    string
-	OTP       string
+	ProjectID     uint   `json:"project_id"`
+	StartTimeSecs int64  `json:"start_time_secs"`
+	DurationSecs  uint64 `json:"duration_secs"`
 }
 
 func registerEntry(w http.ResponseWriter, r *http.Request) {
 	decoder := json.NewDecoder(r.Body)
-	var items []OttoProjectEntry
-	err := decoder.Decode(&items)
+
+	var data OttoRegisterBody
+	err := decoder.Decode(&data)
 	if err != nil {
 		log.Error(err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 	defer r.Body.Close()
-	for _, t := range items {
-		log.Info(t)
-		otto, err := db.Authorize(t.Serial, t.OTP)
-		if err != nil {
-			log.Errorln(err)
-			w.WriteHeader(http.StatusUnauthorized)
-			return
-		}
-		if otto.UserID == nil {
-			log.Error("No user registered for this Otto.")
-			w.WriteHeader(http.StatusUnauthorized)
-			return
-		}
+
+	otto, err := db.Authorize(data.Serial, data.OTP)
+	if err != nil {
+		log.Errorln(err)
+		w.WriteHeader(http.StatusUnauthorized)
+		return
+	}
+
+	if otto.UserID == nil {
+		log.Error("No user registered for this Otto.")
+		w.WriteHeader(http.StatusUnauthorized)
+		return
+	}
+
+	for _, entry := range data.Entries {
+		log.Info(entry)
 
 		// search project by id and add/update entry
 		prj := db.Project{}
-		if db.DB.Find(&prj, t.ProjectID).RecordNotFound() {
+		if db.DB.Find(&prj, entry.ProjectID).RecordNotFound() {
 			log.Error("Invalid Project ID: ", err)
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
 
 		log.Info("User id", otto.UserID, otto.Serial)
-		entry := db.ProjectEntry{UserID: *otto.UserID, ProjectID: t.ProjectID,
-			StartTime: t.StartDate,
-			EndTime:   t.StartDate.Add(t.Duration * time.Minute)}
+
+		startTime := time.Unix(entry.StartTimeSecs, 0)
+		entry := db.ProjectEntry{
+			UserID:    *otto.UserID,
+			ProjectID: entry.ProjectID,
+			StartTime: startTime,
+			EndTime:   startTime.Add(time.Duration(entry.DurationSecs) * time.Second),
+		}
 
 		if db.DB.NewRecord(entry) {
 			if err := db.DB.Create(&entry).Error; err != nil {
