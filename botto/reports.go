@@ -5,16 +5,34 @@ import (
 	"image/png"
 	"time"
 
+	"github.com/8-team/bacotto/db"
 	"github.com/8-team/bacotto/graph"
 	"github.com/nlopes/slack"
 )
 
 func (uc *userContext) showReport(bot *slackbot, ev contextEvent) {
-	pc := graph.NewPunchcard()
-	pc.SetDay(time.Now())
+	badJuju := "Sorry, there was a problem with your report, try later"
+	today := time.Now()
 
-	pc.AddTask("Mock entry", time.Date(0, 0, 0, 9, 42, 0, 0, time.Local),
-		time.Date(0, 0, 0, 13, 2, 0, 0, time.Local))
+	entries, err := db.GetUserEntries(uc.user, today, today)
+	if err != nil {
+		bot.Message(ev.channel(), badJuju)
+		return
+	}
+
+	pc := graph.NewPunchcard()
+	pc.SetDay(today)
+
+	for _, e := range entries {
+		var prj db.Project
+
+		if err := db.DB.First(&prj, e.ProjectID).Error; err != nil {
+			log.Warnf("error retrieving project: %s", err)
+			continue
+		}
+
+		pc.AddTask(prj.Name, e.StartTime, e.EndTime)
+	}
 
 	img := pc.Rasterize()
 	buf := bytes.NewBuffer(make([]byte, 0))
@@ -31,7 +49,7 @@ func (uc *userContext) showReport(bot *slackbot, ev contextEvent) {
 	ts := bot.Message(ev.channel(), "I'm working on it, just a sec")
 
 	if _, err := bot.client.UploadFile(params); err != nil {
-		bot.Message(ev.channel(), "Sorry, there was a problem with your report, try later")
+		bot.Message(ev.channel(), badJuju)
 	}
 
 	bot.client.DeleteMessage(ev.channel(), ts)

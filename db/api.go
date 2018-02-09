@@ -34,17 +34,21 @@ func GetUserFromSerial(serial string) (*User, error) {
 }
 
 func GetUserProjects(u *User) ([]*Project, error) {
-	if err := DB.Preload("Projects").First(u, "id = ?", u.ID).Error; err != nil {
+	tmp := &User{Username: u.Username}
+
+	if err := DB.Preload("Projects").First(tmp).Error; err != nil {
 		return nil, err
 	}
-	return u.Projects, nil
+	return tmp.Projects, nil
 }
 
 func GetUserEntries(u *User, from time.Time, to time.Time) ([]*ProjectEntry, error) {
-	if err := DB.Preload("ProjectEntries").First(u, "id = ?", u.ID).Error; err != nil {
+	tmp := &User{Username: u.Username}
+
+	if err := DB.Preload("ProjectEntries").First(tmp).Error; err != nil {
 		return nil, err
 	}
-	return u.ProjectEntries, nil
+	return tmp.ProjectEntries, nil
 }
 
 func AddProjectToUser(u *User, p *Project) error {
