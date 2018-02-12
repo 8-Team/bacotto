@@ -29,6 +29,10 @@ func ListenAndServe(token string) error {
 		return errors.New("bot already connected")
 	}
 
+	defer func() {
+		bot = nil
+	}()
+
 	if conf.DebugLogLevel() {
 		logrus.SetLevel(logrus.DebugLevel)
 	}
