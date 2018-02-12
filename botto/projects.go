@@ -4,30 +4,14 @@ import (
 	"fmt"
 
 	"github.com/8-team/bacotto/db"
+	"github.com/nlopes/slack"
 )
 
-func (uc *userContext) projectSelected(bot *slackbot, resp *interactiveResponse) {
-	project := new(db.Project)
-	name := resp.Actions[0].SelectedOptions[0].Value
-
-	if err := db.DB.First(project, "name = ?", name).Error; err != nil {
-		bot.Message(resp.channel(), "Invalid project selected")
-		return
-	}
-
-	uc.user.Projects = append(uc.user.Projects, project)
-	db.DB.Save(uc.user)
-
-	bot.Update(resp, interactiveMessage{
-		Text: ":heavy_check_mark: Project successfully added!",
-	})
-}
-
-func (uc *userContext) pickProject(bot *slackbot, ev contextEvent) {
+func (ctx *context) pickProject(ev *slack.MessageEvent) {
 	var projects []db.Project
 
 	if err := db.DB.Find(&projects).Error; err != nil {
-		bot.Message(ev.channel(), "There was a problem retrieving your projects, try later.")
+		ctx.Send("There was a problem retrieving your projects, try later.")
 		return
 	}
 
@@ -41,20 +25,33 @@ func (uc *userContext) pickProject(bot *slackbot, ev contextEvent) {
 	}
 
 	msg := interactiveMessage{
-		Callback: uc.projectSelected,
 		Elements: []interactiveElement{menu},
 	}
 
-	bot.InteractiveMessage(ev.channel(), "Here is a list of your recent projects, "+
-		"select the ones you want to see on your device:", msg)
+	ctx.SendInteractive("Here is a list of your recent projects, "+
+		"select the ones you want to see on your device:", msg,
+		func(resp *slack.AttachmentActionCallback) {
+			project := new(db.Project)
+			name := resp.Actions[0].SelectedOptions[0].Value
 
-	uc.dispatcher = uc.parseCommand
+			if err := db.DB.First(project, "name = ?", name).Error; err != nil {
+				ctx.Send("Invalid project selected")
+				return
+			}
+
+			ctx.user.Projects = append(ctx.user.Projects, project)
+			db.DB.Save(ctx.user)
+
+			ctx.Update(resp, interactiveMessage{
+				Text: ":heavy_check_mark: Project successfully added!",
+			})
+		})
 }
 
-func (uc *userContext) listProjects(bot *slackbot, ev contextEvent) {
-	projects, err := db.GetUserProjects(uc.user)
+func (ctx *context) listProjects(ev *slack.MessageEvent) {
+	projects, err := db.GetUserProjects(ctx.user)
 	if err != nil {
-		bot.Message(ev.channel(), "There was a problem retrieving your projects, try later.")
+		ctx.Send("There was a problem retrieving your projects, try later.")
 		return
 	}
 
@@ -63,7 +60,5 @@ func (uc *userContext) listProjects(bot *slackbot, ev contextEvent) {
 		resp += fmt.Sprintf("* %s\n", prj.Name)
 	}
 
-	bot.Message(ev.channel(), resp)
-
-	uc.dispatcher = uc.parseCommand
+	ctx.Send(resp)
 }

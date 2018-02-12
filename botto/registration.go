@@ -6,80 +6,66 @@ import (
 	"strings"
 
 	"github.com/8-team/bacotto/db"
+	"github.com/nlopes/slack"
 )
 
-func (uc *userContext) validateSerial(serial string) error {
+func (ctx *context) validateSerial(serial string) error {
 	re := regexp.MustCompile("^[a-fA-F0-9]{6}$")
 
 	if !re.MatchString(serial) {
 		return errors.New("Sorry, the serial number must be a 6-digit hex number")
 	}
 
-	if db.DB.First(&uc.user.Otto, "serial = ?", serial).RecordNotFound() {
+	if db.DB.First(&ctx.user.Otto, "serial = ?", serial).RecordNotFound() {
 		return errors.New("Sorry, I can't find a matching serial. Could you double-check it?")
 	}
 
-	db.DB.Save(uc.user)
 	return nil
 }
 
-func (uc *userContext) validateOtp(otp string) error {
+func (ctx *context) validateOtp(otp string) error {
 	re := regexp.MustCompile("^\\d{6}$")
 
 	if !re.MatchString(otp) {
 		return errors.New("Sorry, the OTP must be a 6-digit number")
 	}
 
-	if _, err := db.Authorize(uc.user.Otto.Serial, otp); err != nil {
+	if _, err := db.Authorize(ctx.user.Otto.Serial, otp); err != nil {
 		return errors.New("Sorry, this OTP is not valid, try again")
 	}
 
 	return nil
 }
 
-func (uc *userContext) createUser(username string) error {
-	user := &db.User{
-		Username: username,
-	}
-
-	if db.DB.Create(user).Error != nil {
-		return errors.New("There was an error during registration, try again")
-	}
-
-	return nil
-}
-
-func (uc *userContext) registerUser(bot *slackbot, ev contextEvent) {
-	text := `Hi! I'm Botto and I'll be your guide in the magic world of Otto :8ball:
+func (ctx *context) registerUser(ev *slack.MessageEvent) {
+	ctx.Send(`Hi! I'm Botto and I'll be your guide in the magic world of Otto :8ball:
 Looks like this is your first time using your Otto, so let's get you up and running!
-To get started, please input your Otto's serial number. You can find it on the back of your device.`
+To get started, please input your Otto's serial number. You can find it on the back of your device.`)
 
-	bot.Message(ev.channel(), text)
-	uc.dispatcher = uc.inputSerial
-}
+	ev = ctx.Wait()
+	serial := strings.TrimSpace(ev.Text)
 
-func (uc *userContext) inputSerial(bot *slackbot, ev contextEvent) {
-	if err := uc.validateSerial(strings.TrimSpace(ev.text())); err != nil {
-		bot.Message(ev.channel(), err.Error())
-	} else {
-		bot.Message(ev.channel(), "You are doing great! Now input the OTP code from your Otto.")
-		uc.dispatcher = uc.inputOtp
+	for err := ctx.validateSerial(serial); err != nil; {
+		ctx.Send(err.Error())
 	}
-}
 
-func (uc *userContext) inputOtp(bot *slackbot, ev contextEvent) {
-	if err := uc.validateOtp(strings.TrimSpace(ev.text())); err != nil {
-		bot.Message(ev.channel(), err.Error())
+	ctx.Send("You are doing great! Now input the OTP code from your Otto.")
+
+	ev = ctx.Wait()
+	otp := strings.TrimSpace(ev.Text)
+
+	for err := ctx.validateOtp(otp); err != nil; {
+		ctx.Send(err.Error())
+	}
+
+	if err := db.DB.Save(ctx.user).Error; err != nil {
+		ctx.Send(err.Error())
 		return
 	}
 
-	if err := uc.createUser(ev.user()); err != nil {
-		bot.Message(ev.channel(), err.Error())
-		return
-	}
+	ctx.Send("Fantastic, let's try adding a project to your Otto!")
 
-	bot.Message(ev.channel(), "Fantastic, let's try adding a project to your Otto!")
+	ctx.pickProject(nil)
 
-	uc.dispatcher = uc.pickProject
-	uc.dispatcher(bot, ev)
+	ctx.Send("You are set and ready to go! Type `help` to show a list of possible commands.")
 }

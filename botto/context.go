@@ -5,56 +5,59 @@ import (
 	"github.com/nlopes/slack"
 )
 
-type userContext struct {
-	user       *db.User
-	dispatcher func(bot *slackbot, ev contextEvent)
+type context struct {
+	user    *db.User
+	channel string
+	bot     *slackbot
+	sync    chan *slack.MessageEvent
+	async   chan *slack.AttachmentActionCallback
 }
 
-type contextEvent interface {
-	user() string
-	channel() string
-	text() string
+func newContext(bot *slackbot, username string, channel string) *context {
+	ctx := &context{
+		user:    new(db.User),
+		channel: channel,
+		bot:     bot,
+		sync:    make(chan *slack.MessageEvent),
+		async:   make(chan *slack.AttachmentActionCallback),
+	}
+
+	ctx.user.Username = username
+	return ctx
 }
 
-func (uc *userContext) init(ev contextEvent) {
-	uc.user = new(db.User)
+func (ctx *context) start() error {
+	var registrationRequired bool
 
-	if err := db.DB.Preload("Otto").First(uc.user, "username = ?", ev.user()).Error; err != nil {
+	if err := db.DB.Preload("Otto").First(ctx.user, "username = ?", ctx.user.Username).Error; err != nil {
 		log.Debugln("User not found in DB, proceeding with registration")
-		uc.dispatcher = uc.registerUser
-	} else {
-		uc.dispatcher = uc.parseCommand
+		registrationRequired = true
+	}
+
+	for {
+		ev := ctx.Wait()
+
+		if registrationRequired {
+			ctx.registerUser(ev)
+			registrationRequired = false
+		} else {
+			ctx.parseCommand(ev)
+		}
 	}
 }
 
-type interactiveResponse struct {
-	*slack.AttachmentActionCallback
+func (ctx *context) dispatchSync(ev *slack.MessageEvent) {
+	ctx.sync <- ev
 }
 
-func (ir *interactiveResponse) user() string {
-	return ir.User.Name
+func (ctx *context) dispatchAsync(ev *slack.AttachmentActionCallback) {
+	ctx.async <- ev
 }
 
-func (ir *interactiveResponse) channel() string {
-	return ir.Channel.ID
+func (ctx *context) Wait() *slack.MessageEvent {
+	return <-ctx.sync
 }
 
-func (ir *interactiveResponse) text() string {
-	return ir.OriginalMessage.Text
-}
-
-type messageEvent struct {
-	*slack.MessageEvent
-}
-
-func (ev *messageEvent) user() string {
-	return ev.Msg.User
-}
-
-func (ev *messageEvent) channel() string {
-	return ev.Msg.Channel
-}
-
-func (ev *messageEvent) text() string {
-	return ev.Msg.Text
+func (ctx *context) WaitAsync() *slack.AttachmentActionCallback {
+	return <-ctx.async
 }

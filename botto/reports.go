@@ -10,13 +10,13 @@ import (
 	"github.com/nlopes/slack"
 )
 
-func (uc *userContext) showReport(bot *slackbot, ev contextEvent) {
+func (ctx *context) showReport(ev *slack.MessageEvent) {
 	badJuju := "Sorry, there was a problem with your report, try later"
 	today := time.Now()
 
-	entries, err := db.GetUserEntries(uc.user, today, today)
+	entries, err := db.GetUserEntries(ctx.user, today, today)
 	if err != nil {
-		bot.Message(ev.channel(), badJuju)
+		ctx.Send(badJuju)
 		return
 	}
 
@@ -40,17 +40,17 @@ func (uc *userContext) showReport(bot *slackbot, ev contextEvent) {
 
 	params := slack.FileUploadParameters{
 		Title:    "Your daily report",
-		Channels: []string{ev.channel()},
+		Channels: []string{ctx.channel},
 		Filetype: "png",
 		Filename: "report.png",
 		Reader:   buf,
 	}
 
-	ts := bot.Message(ev.channel(), "I'm working on it, just a sec")
+	ts := ctx.Send("I'm working on it, just a sec")
 
 	if _, err := bot.client.UploadFile(params); err != nil {
-		bot.Message(ev.channel(), badJuju)
+		ctx.Send(badJuju)
 	}
 
-	bot.client.DeleteMessage(ev.channel(), ts)
+	ctx.bot.client.DeleteMessage(ev.Channel, ts)
 }

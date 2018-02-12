@@ -5,6 +5,7 @@ import (
 	"errors"
 	"net/http"
 	"strings"
+	"sync"
 
 	"github.com/8-team/bacotto/conf"
 	"github.com/Sirupsen/logrus"
@@ -14,15 +15,10 @@ import (
 type slackbot struct {
 	id string
 
-	client    *slack.Client
-	rtm       *slack.RTM
-	asyncEvts chan *interactiveResponse
-	callbacks map[string]eventCallback
-
-	contexts map[string]*userContext
+	client   *slack.Client
+	rtm      *slack.RTM
+	contexts sync.Map
 }
-
-type eventCallback func(*slackbot, *interactiveResponse)
 
 var log *logrus.Entry
 var bot *slackbot
@@ -41,54 +37,55 @@ func ListenAndServe(token string) error {
 	bot = new(slackbot)
 	bot.client = slack.New(token)
 	bot.rtm = bot.client.NewRTM()
-	bot.contexts = make(map[string]*userContext)
-	bot.asyncEvts = make(chan *interactiveResponse)
-	bot.callbacks = make(map[string]eventCallback)
 
 	go bot.rtm.ManageConnection()
 
 	for {
-		select {
-		case msg := <-bot.rtm.IncomingEvents:
-			switch ev := msg.Data.(type) {
-			case *slack.ConnectedEvent:
-				bot.id = ev.Info.User.ID
+		msg := <-bot.rtm.IncomingEvents
 
-				log.Infof("%s is online @ %s", ev.Info.User.Name, ev.Info.Team.Name)
+		switch ev := msg.Data.(type) {
+		case *slack.ConnectedEvent:
+			log.Infof("%s is online @ %s", ev.Info.User.Name, ev.Info.Team.Name)
+			bot.id = ev.Info.User.ID
 
-			case *slack.MessageEvent:
-				log.Debugln("Message event received")
-				bot.dispatchMsgEvent(ev)
+		case *slack.MessageEvent:
+			log.Debugln("Message event received")
+			bot.dispatchMsgEvent(ev)
 
-			case *slack.RTMError:
-				log.Errorf("RTM error: %s\n", ev.Error())
+		case *slack.RTMError:
+			log.Errorf("RTM error: %s\n", ev.Error())
 
-			case *slack.InvalidAuthEvent:
-				return errors.New("invalid Slack token")
-			}
-
-		case ev := <-bot.asyncEvts:
-			log.Debugln("Async event received")
-			bot.dispatchAsync(ev)
+		case *slack.InvalidAuthEvent:
+			return errors.New("invalid Slack token")
 		}
 	}
 }
 
+// InteractiveEventHandler listens to incoming interactive (asynchronous) messages and
+// dispatches them to the correct context.
 func InteractiveEventHandler(w http.ResponseWriter, r *http.Request) {
-	resp := new(interactiveResponse)
+	resp := new(slack.AttachmentActionCallback)
 	payload := r.FormValue("payload")
 
 	if err := json.Unmarshal([]byte(payload), resp); err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
+		w.WriteHeader(http.StatusBadRequest)
 		log.Errorln(err)
 		return
 	}
 
-	bot.asyncEvts <- resp
+	// Receiving an async message from a non-existing user is a no-no.
+	ctx, ok := bot.contexts.Load(resp.User.ID)
+	if !ok {
+		log.Errorln("Asynchronous event for non-existing user, skipping")
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
 
+	ctx.(*context).dispatchAsync(resp)
 	w.WriteHeader(http.StatusOK)
 }
 
+// dispatchMsgEvent handles incoming "synchronous" messages from the bot RTM API
 func (b *slackbot) dispatchMsgEvent(ev *slack.MessageEvent) {
 	// Only handle messages from other users
 	if ev.User == "" || ev.User == b.id || (ev.Msg.Type != "message" ||
@@ -101,32 +98,12 @@ func (b *slackbot) dispatchMsgEvent(ev *slack.MessageEvent) {
 		return
 	}
 
-	if _, ok := b.contexts[ev.User]; !ok {
+	// A user context is created and started if this is the first message received from that user.
+	ctx, loaded := bot.contexts.LoadOrStore(ev.User, newContext(bot, ev.User, ev.Channel))
+	if !loaded {
 		log.Debugf("Missing user context for %s, creating one", ev.User)
-		b.contexts[ev.User] = new(userContext)
-		b.contexts[ev.User].init(&messageEvent{ev})
+		go ctx.(*context).start()
 	}
 
-	b.contexts[ev.User].dispatcher(b, &messageEvent{ev})
-}
-
-func (b *slackbot) dispatchAsync(resp *interactiveResponse) {
-	eventCallback, ok := b.callbacks[resp.CallbackID]
-	if !ok {
-		log.Errorln("invalid callback for async response")
-		return
-	}
-
-	if eventCallback != nil {
-		eventCallback(b, resp)
-		b.removeCallback(resp.CallbackID)
-	}
-}
-
-func (b *slackbot) registerCallback(id string, cb eventCallback) {
-	b.callbacks[id] = cb
-}
-
-func (b *slackbot) removeCallback(id string) {
-	delete(b.callbacks, id)
+	ctx.(*context).dispatchSync(ev)
 }

@@ -22,17 +22,20 @@ type messageMenu struct {
 }
 
 type interactiveMessage struct {
-	Callback eventCallback
 	Text     string
 	Elements []interactiveElement
 }
 
-func (b *slackbot) Message(channel string, text string) string {
-	_, ts, _ := b.client.PostMessage(channel, text, slack.NewPostMessageParameters())
+func (ctx *context) Send(text string) string {
+	_, ts, _ := ctx.bot.client.PostMessage(ctx.channel, text, slack.NewPostMessageParameters())
 	return ts
 }
 
-func (b *slackbot) InteractiveMessage(channel string, text string, msg interactiveMessage) string {
+func (ctx *context) SendInteractive(
+	text string,
+	msg interactiveMessage,
+	cb func(resp *slack.AttachmentActionCallback)) string {
+
 	parm := slack.NewPostMessageParameters()
 	uid := uuid.NewV4().String()
 
@@ -49,20 +52,24 @@ func (b *slackbot) InteractiveMessage(channel string, text string, msg interacti
 
 	parm.Attachments = []slack.Attachment{attch}
 
-	bot.registerCallback(uid, msg.Callback)
+	_, ts, _ := ctx.bot.client.PostMessage(ctx.channel, text, parm)
 
-	_, ts, _ := bot.client.PostMessage(channel, text, parm)
+	resp := ctx.WaitAsync()
+
+	if cb != nil {
+		cb(resp)
+	}
+
 	return ts
 }
 
-func (b *slackbot) Update(resp *interactiveResponse, msg interactiveMessage) {
+func (ctx *context) Update(resp *slack.AttachmentActionCallback, msg interactiveMessage) {
 	parm := slack.NewPostMessageParameters()
 
 	attch := slack.Attachment{
-		Fallback:   resp.text(),
-		CallbackID: resp.CallbackID,
-		Text:       msg.Text,
-		Actions:    make([]slack.AttachmentAction, len(msg.Elements)),
+		Fallback: msg.Text,
+		Text:     msg.Text,
+		Actions:  make([]slack.AttachmentAction, len(msg.Elements)),
 	}
 
 	for i, e := range msg.Elements {
@@ -71,12 +78,14 @@ func (b *slackbot) Update(resp *interactiveResponse, msg interactiveMessage) {
 
 	parm.Attachments = []slack.Attachment{attch}
 
-	bot.client.SendMessage(
-		resp.channel(),
+	if _, _, _, err := ctx.bot.client.SendMessage(
+		ctx.channel,
 		slack.MsgOptionUpdate(resp.MessageTs),
 		slack.MsgOptionAttachments(parm.Attachments...),
 		slack.MsgOptionPostMessageParameters(parm),
-	)
+	); err != nil {
+		log.Errorln(err)
+	}
 }
 
 func (mb messageButton) toAction() slack.AttachmentAction {
