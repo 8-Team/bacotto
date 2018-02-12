@@ -27,22 +27,13 @@ func newContext(bot *slackbot, username string, channel string) *context {
 }
 
 func (ctx *context) start() error {
-	var registrationRequired bool
-
 	if err := db.DB.Preload("Otto").First(ctx.user, "username = ?", ctx.user.Username).Error; err != nil {
 		log.Debugln("User not found in DB, proceeding with registration")
-		registrationRequired = true
+		ctx.registerUser(ctx.Wait())
 	}
 
 	for {
-		ev := ctx.Wait()
-
-		if registrationRequired {
-			ctx.registerUser(ev)
-			registrationRequired = false
-		} else {
-			ctx.parseCommand(ev)
-		}
+		ctx.parseCommand(ctx.Wait())
 	}
 }
 

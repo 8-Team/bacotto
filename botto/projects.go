@@ -28,24 +28,25 @@ func (ctx *context) pickProject(ev *slack.MessageEvent) {
 		Elements: []interactiveElement{menu},
 	}
 
-	ctx.SendInteractive("Here is a list of your recent projects, "+
-		"select the ones you want to see on your device:", msg,
-		func(resp *slack.AttachmentActionCallback) {
-			project := new(db.Project)
-			name := resp.Actions[0].SelectedOptions[0].Value
+	text := "Here is a list of your recent projects, " +
+		"select the ones you want to see on your device:"
 
-			if err := db.DB.First(project, "name = ?", name).Error; err != nil {
-				ctx.Send("Invalid project selected")
-				return
-			}
+	ctx.SendInteractive(text, msg, func(resp *slack.AttachmentActionCallback) {
+		project := new(db.Project)
+		name := resp.Actions[0].SelectedOptions[0].Value
 
-			ctx.user.Projects = append(ctx.user.Projects, project)
-			db.DB.Save(ctx.user)
+		if err := db.DB.First(project, "name = ?", name).Error; err != nil {
+			ctx.Send("Invalid project selected")
+			return
+		}
 
-			ctx.Update(resp, interactiveMessage{
-				Text: ":heavy_check_mark: Project successfully added!",
-			})
+		ctx.user.Projects = append(ctx.user.Projects, project)
+		db.DB.Save(ctx.user)
+
+		ctx.Update(resp, interactiveMessage{
+			Text: ":heavy_check_mark: Project successfully added!",
 		})
+	})
 }
 
 func (ctx *context) listProjects(ev *slack.MessageEvent) {

@@ -88,6 +88,10 @@ func (ctx *context) Update(resp *slack.AttachmentActionCallback, msg interactive
 	}
 }
 
+func (ctx *context) Delete(ts string) {
+	ctx.bot.client.DeleteMessage(ctx.channel, ts)
+}
+
 func (mb messageButton) toAction() slack.AttachmentAction {
 	return slack.AttachmentAction{
 		Name:  mb.Name,

@@ -52,5 +52,5 @@ func (ctx *context) showReport(ev *slack.MessageEvent) {
 		ctx.Send(badJuju)
 	}
 
-	ctx.bot.client.DeleteMessage(ev.Channel, ts)
+	ctx.Delete(ts)
 }
