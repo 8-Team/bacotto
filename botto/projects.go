@@ -4,18 +4,21 @@ import (
 	"fmt"
 
 	"github.com/8-team/bacotto/db"
+	"github.com/8-team/bacotto/slackbot"
 	"github.com/nlopes/slack"
 )
 
-func (ctx *context) pickProject(ev *slack.MessageEvent) {
+func PickProject(ctx *slackbot.Context, ev *slack.MessageEvent) error {
 	var projects []db.Project
+
+	user := ctx.Data.(*db.User)
 
 	if err := db.DB.Find(&projects).Error; err != nil {
 		ctx.Send("There was a problem retrieving your projects, try later.")
-		return
+		return err
 	}
 
-	menu := messageMenu{
+	menu := slackbot.MessageMenu{
 		Name:   "projects",
 		Values: make(map[string]string),
 	}
@@ -24,8 +27,8 @@ func (ctx *context) pickProject(ev *slack.MessageEvent) {
 		menu.Values[p.Name] = p.Name
 	}
 
-	msg := interactiveMessage{
-		Elements: []interactiveElement{menu},
+	msg := slackbot.InteractiveMessage{
+		Elements: []slackbot.InteractiveElement{menu},
 	}
 
 	text := "Here is a list of your recent projects, " +
@@ -40,20 +43,24 @@ func (ctx *context) pickProject(ev *slack.MessageEvent) {
 			return
 		}
 
-		ctx.user.Projects = append(ctx.user.Projects, project)
-		db.DB.Save(ctx.user)
+		user.Projects = append(user.Projects, project)
+		db.DB.Save(user)
 
-		ctx.Update(resp, interactiveMessage{
+		ctx.Update(resp, slackbot.InteractiveMessage{
 			Text: ":heavy_check_mark: Project successfully added!",
 		})
 	})
+
+	return nil
 }
 
-func (ctx *context) listProjects(ev *slack.MessageEvent) {
-	projects, err := db.GetUserProjects(ctx.user)
+func ListProjects(ctx *slackbot.Context, ev *slack.MessageEvent) error {
+	user := ctx.Data.(*db.User)
+
+	projects, err := db.GetUserProjects(user)
 	if err != nil {
 		ctx.Send("There was a problem retrieving your projects, try later.")
-		return
+		return err
 	}
 
 	resp := "Here's a list of your currently tracked projects:\n"
@@ -62,4 +69,6 @@ func (ctx *context) listProjects(ev *slack.MessageEvent) {
 	}
 
 	ctx.Send(resp)
+
+	return nil
 }

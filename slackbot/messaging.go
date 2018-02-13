@@ -1,39 +1,39 @@
-package botto
+package slackbot
 
 import (
 	"github.com/nlopes/slack"
 	uuid "github.com/satori/go.uuid"
 )
 
-type interactiveElement interface {
-	toAction() slack.AttachmentAction
+type InteractiveElement interface {
+	ToAction() slack.AttachmentAction
 }
 
-type messageButton struct {
+type MessageButton struct {
 	Name  string
 	Text  string
 	Value string
 }
 
-type messageMenu struct {
+type MessageMenu struct {
 	Name   string
 	Text   string
 	Values map[string]string
 }
 
-type interactiveMessage struct {
+type InteractiveMessage struct {
 	Text     string
-	Elements []interactiveElement
+	Elements []InteractiveElement
 }
 
-func (ctx *context) Send(text string) string {
-	_, ts, _ := ctx.bot.client.PostMessage(ctx.channel, text, slack.NewPostMessageParameters())
+func (ctx *Context) Send(text string) string {
+	_, ts, _ := ctx.bot.client.PostMessage(ctx.Channel, text, slack.NewPostMessageParameters())
 	return ts
 }
 
-func (ctx *context) SendInteractive(
+func (ctx *Context) SendInteractive(
 	text string,
-	msg interactiveMessage,
+	msg InteractiveMessage,
 	cb func(resp *slack.AttachmentActionCallback)) string {
 
 	parm := slack.NewPostMessageParameters()
@@ -47,14 +47,14 @@ func (ctx *context) SendInteractive(
 	}
 
 	for i, e := range msg.Elements {
-		attch.Actions[i] = e.toAction()
+		attch.Actions[i] = e.ToAction()
 	}
 
 	parm.Attachments = []slack.Attachment{attch}
 
-	_, ts, _ := ctx.bot.client.PostMessage(ctx.channel, text, parm)
+	_, ts, _ := ctx.bot.client.PostMessage(ctx.Channel, text, parm)
 
-	resp := ctx.WaitAsync()
+	resp := ctx.ReceiveAsync()
 
 	if cb != nil {
 		cb(resp)
@@ -63,7 +63,7 @@ func (ctx *context) SendInteractive(
 	return ts
 }
 
-func (ctx *context) Update(resp *slack.AttachmentActionCallback, msg interactiveMessage) {
+func (ctx *Context) Update(resp *slack.AttachmentActionCallback, msg InteractiveMessage) {
 	parm := slack.NewPostMessageParameters()
 
 	attch := slack.Attachment{
@@ -73,26 +73,31 @@ func (ctx *context) Update(resp *slack.AttachmentActionCallback, msg interactive
 	}
 
 	for i, e := range msg.Elements {
-		attch.Actions[i] = e.toAction()
+		attch.Actions[i] = e.ToAction()
 	}
 
 	parm.Attachments = []slack.Attachment{attch}
 
 	if _, _, _, err := ctx.bot.client.SendMessage(
-		ctx.channel,
+		ctx.Channel,
 		slack.MsgOptionUpdate(resp.MessageTs),
 		slack.MsgOptionAttachments(parm.Attachments...),
 		slack.MsgOptionPostMessageParameters(parm),
 	); err != nil {
-		log.Errorln(err)
+		ctx.bot.logger.Errorln(err)
 	}
 }
 
-func (ctx *context) Delete(ts string) {
-	ctx.bot.client.DeleteMessage(ctx.channel, ts)
+func (ctx *Context) Delete(ts string) {
+	ctx.bot.client.DeleteMessage(ctx.Channel, ts)
 }
 
-func (mb messageButton) toAction() slack.AttachmentAction {
+func (ctx *Context) Upload(params slack.FileUploadParameters) error {
+	_, err := ctx.bot.client.UploadFile(params)
+	return err
+}
+
+func (mb MessageButton) ToAction() slack.AttachmentAction {
 	return slack.AttachmentAction{
 		Name:  mb.Name,
 		Text:  mb.Text,
@@ -101,7 +106,7 @@ func (mb messageButton) toAction() slack.AttachmentAction {
 	}
 }
 
-func (mm messageMenu) toAction() slack.AttachmentAction {
+func (mm MessageMenu) ToAction() slack.AttachmentAction {
 	opts := make([]slack.AttachmentActionOption, 0, len(mm.Values))
 	for value, name := range mm.Values {
 		opts = append(opts, slack.AttachmentActionOption{

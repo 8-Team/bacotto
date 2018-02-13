@@ -7,17 +7,20 @@ import (
 
 	"github.com/8-team/bacotto/db"
 	"github.com/8-team/bacotto/graph"
+	"github.com/8-team/bacotto/slackbot"
+	"github.com/Sirupsen/logrus"
 	"github.com/nlopes/slack"
 )
 
-func (ctx *context) showReport(ev *slack.MessageEvent) {
+func ShowReport(ctx *slackbot.Context, ev *slack.MessageEvent) error {
 	badJuju := "Sorry, there was a problem with your report, try later"
 	today := time.Now()
+	user := ctx.Data.(*db.User)
 
-	entries, err := db.GetUserEntries(ctx.user, today, today)
+	entries, err := db.GetUserEntries(user, today, today)
 	if err != nil {
 		ctx.Send(badJuju)
-		return
+		return err
 	}
 
 	pc := graph.NewPunchcard()
@@ -27,7 +30,7 @@ func (ctx *context) showReport(ev *slack.MessageEvent) {
 		var prj db.Project
 
 		if err := db.DB.First(&prj, e.ProjectID).Error; err != nil {
-			log.Warnf("error retrieving project: %s", err)
+			logrus.Warnf("error retrieving project: %s", err)
 			continue
 		}
 
@@ -40,7 +43,7 @@ func (ctx *context) showReport(ev *slack.MessageEvent) {
 
 	params := slack.FileUploadParameters{
 		Title:    "Your daily report",
-		Channels: []string{ctx.channel},
+		Channels: []string{ctx.Channel},
 		Filetype: "png",
 		Filename: "report.png",
 		Reader:   buf,
@@ -48,9 +51,11 @@ func (ctx *context) showReport(ev *slack.MessageEvent) {
 
 	ts := ctx.Send("I'm working on it, just a sec")
 
-	if _, err := bot.client.UploadFile(params); err != nil {
+	if err := ctx.Upload(params); err != nil {
 		ctx.Send(badJuju)
 	}
 
 	ctx.Delete(ts)
+
+	return nil
 }

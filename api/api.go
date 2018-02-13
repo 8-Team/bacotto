@@ -5,7 +5,6 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/8-team/bacotto/botto"
 	"github.com/8-team/bacotto/conf"
 	"github.com/8-team/bacotto/db"
 	"github.com/Sirupsen/logrus"
@@ -221,12 +220,12 @@ func prjStats(w http.ResponseWriter, r *http.Request) {
 }
 
 //ListenAndServe ... Otto endpoints
-func ListenAndServe(addr string) error {
+func ListenAndServe(addr string, slackAPIHandler http.HandlerFunc) error {
 	http.HandleFunc("/ping", pong)
 	http.HandleFunc("/projects", listProjects)
 	http.HandleFunc("/register", registerEntry)
 	http.HandleFunc("/stats", prjStats)
-	http.HandleFunc("/slack_api", botto.InteractiveEventHandler)
+	http.HandleFunc("/slack_api", slackAPIHandler)
 
 	if conf.UseHTTPS() {
 		return http.ListenAndServeTLS(addr,
