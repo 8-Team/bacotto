@@ -117,6 +117,7 @@ func registerEntry(w http.ResponseWriter, r *http.Request) {
 		log.Info("User id", otto.UserID, otto.Serial)
 
 		startTime := time.Unix(entry.StartTimeSecs, 0)
+
 		entry := db.ProjectEntry{
 			UserID:    *otto.UserID,
 			ProjectID: entry.ProjectID,

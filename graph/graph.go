@@ -196,7 +196,7 @@ func (pc *Punchcard) drawIntervals() {
 
 	for h := 7; h < 19; h++ {
 		x := float64(pc.inner.Min.X + 12)
-		y := pc.timeToYCoord(time.Date(0, 0, 0, h, 0, 0, 0, time.Local))
+		y := pc.timeToYCoord(time.Date(0, 0, 0, h, 0, 0, 0, time.UTC))
 
 		pc.withColor(materialGray).text(fmt.Sprintf("%02d:00", h), alignLeft, x, y)
 		pc.withColor(materialLightGray).line(x+72, y, float64(pc.inner.Max.X), y)

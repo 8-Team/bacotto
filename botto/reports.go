@@ -26,6 +26,9 @@ func ShowReport(ctx *slackbot.Context, ev *slack.MessageEvent) error {
 	pc := graph.NewPunchcard()
 	pc.SetDay(today)
 
+	/* TODO: make this generic */
+	loc, _ := time.LoadLocation("Europe/Rome")
+
 	for _, e := range entries {
 		var prj db.Project
 
@@ -34,7 +37,7 @@ func ShowReport(ctx *slackbot.Context, ev *slack.MessageEvent) error {
 			continue
 		}
 
-		pc.AddTask(prj.Name, e.StartTime, e.EndTime)
+		pc.AddTask(prj.Name, e.StartTime.In(loc), e.EndTime.In(loc))
 	}
 
 	img := pc.Rasterize()
