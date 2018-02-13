@@ -86,8 +86,10 @@ func CheckUserPresence(ctx *slackbot.Context, ev *slack.MessageEvent) error {
 	ctx.Data = new(db.User)
 	user := ctx.Data.(*db.User)
 
-	if err := db.DB.Preload("Otto").First(user, "username = ?", ev.Username).Error; err != nil {
+	if err := db.DB.Preload("Otto").First(user, "username = ?", ev.User).Error; err != nil {
 		logrus.Debugln("User not found in DB, proceeding with registration")
+
+		user.Username = ev.User
 		registerUser(ctx)
 	}
 	return nil

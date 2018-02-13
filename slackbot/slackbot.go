@@ -38,6 +38,7 @@ func New(token string) *Bot {
 	bot.rtm = bot.client.NewRTM()
 
 	bot.logger = logrus.New()
+	bot.logger.SetLevel(logrus.DebugLevel)
 
 	return bot
 }

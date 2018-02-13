@@ -30,14 +30,16 @@ func newContext(bot *Bot, username string, channel string) *Context {
 }
 
 func (ctx *Context) start(initFn ContextFn) error {
+	msg := ctx.Receive()
+
 	if initFn != nil {
-		if err := initFn(ctx, ctx.Receive()); err != nil {
+		if err := initFn(ctx, msg); err != nil {
 			return err
 		}
 	}
 
 	for {
-		msg := ctx.Receive()
+		msg = ctx.Receive()
 		ctx.exec(msg)
 	}
 }
